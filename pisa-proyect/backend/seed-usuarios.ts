@@ -16,9 +16,16 @@ interface CategoriaSeed {
   es_videos?: boolean;
 }
 
+/**
+ * Nominación de una categoría.
+ * - descripcion: texto que saldrá en el front (persona o evento).
+ * - usernames: usernames de los implicados en la nominación (1..N).
+ * - video_url: solo para la categoría de vídeos si quieres.
+ */
 interface NominacionSeed {
   categoriaNumero: number;   // 1..15
-  username: string;          // username del usuario nominado
+  descripcion: string;
+  usernames: string[];       // 0..N (puede estar vacío si no mapeamos a nadie)
   video_url?: string | null; // solo para la categoría de vídeos (13)
 }
 
@@ -69,94 +76,161 @@ const categorias: CategoriaSeed[] = [
   { numero: 15, nombre: "Mejor borracho" },
 ];
 
-// 3) NOMINACIONES (por username)
+// 3) NOMINACIONES (una fila por opción del PDF, con 1..N usernames)
+
 const nominaciones: NominacionSeed[] = [
   // 1) Mejor creador de memes
-  { categoriaNumero: 1, username: "nigy" },    // Daniel García
-  { categoriaNumero: 1, username: "andres" },
-  { categoriaNumero: 1, username: "rubita" },  // Mario Elvira
-  { categoriaNumero: 1, username: "juaco" },
+  { categoriaNumero: 1, descripcion: "Daniel García",     usernames: ["nigy"] },
+  { categoriaNumero: 1, descripcion: "Andrés Fernández",  usernames: ["andres"] },
+  { categoriaNumero: 1, descripcion: "Mario Elvira",      usernames: ["rubita"] },
+  { categoriaNumero: 1, descripcion: "Joaquín González",  usernames: ["juaco"] },
 
   // 2) Gymbro del año
-  { categoriaNumero: 2, username: "botas" },
-  { categoriaNumero: 2, username: "andres" },
-  { categoriaNumero: 2, username: "cabezas" },
-  { categoriaNumero: 2, username: "vargas" },
+  { categoriaNumero: 2, descripcion: "Santiago Botas",    usernames: ["botas"] },
+  { categoriaNumero: 2, descripcion: "Andrés Fernández",  usernames: ["andres"] },
+  { categoriaNumero: 2, descripcion: "Pablo Cabezas",     usernames: ["cabezas"] },
+  { categoriaNumero: 2, descripcion: "Gonzalo Vargas",    usernames: ["vargas"] },
 
   // 3) Most valuable obrero
-  { categoriaNumero: 3, username: "olivares" },
-  { categoriaNumero: 3, username: "juaco" },
-  { categoriaNumero: 3, username: "cojo" },
-  { categoriaNumero: 3, username: "migu" },    // Miguel Ángel
+  { categoriaNumero: 3, descripcion: "Álvaro Olivares",   usernames: ["olivares"] },
+  { categoriaNumero: 3, descripcion: "Joaquín González",  usernames: ["juaco"] },
+  { categoriaNumero: 3, descripcion: "Jorge Cojo",        usernames: ["cojo"] },
+  { categoriaNumero: 3, descripcion: "Miguel Ángel",      usernames: ["migu"] },
 
   // 4) Mayor liado
-  { categoriaNumero: 4, username: "andres" },
-  { categoriaNumero: 4, username: "juaco" },
-  { categoriaNumero: 4, username: "nigy" },
-  { categoriaNumero: 4, username: "botas" },
+  { categoriaNumero: 4, descripcion: "Andrés Fernández",  usernames: ["andres"] },
+  { categoriaNumero: 4, descripcion: "Joaquín González",  usernames: ["juaco"] },
+  { categoriaNumero: 4, descripcion: "Daniel García",     usernames: ["nigy"] },
+  { categoriaNumero: 4, descripcion: "Santiago Botas",    usernames: ["botas"] },
 
   // 5) Más putero
-  { categoriaNumero: 5, username: "nigy" },
-  { categoriaNumero: 5, username: "cabezas" },
-  { categoriaNumero: 5, username: "botas" },
-  { categoriaNumero: 5, username: "rey" },
+  { categoriaNumero: 5, descripcion: "Daniel García",     usernames: ["nigy"] },
+  { categoriaNumero: 5, descripcion: "Pablo Cabezas",     usernames: ["cabezas"] },
+  { categoriaNumero: 5, descripcion: "Santiago Botas",    usernames: ["botas"] },
+  { categoriaNumero: 5, descripcion: "Alberto Rey",       usernames: ["rey"] },
 
   // 6) Mayor hustler
-  { categoriaNumero: 6, username: "rorro" },   // Rodrigo Navarro
-  { categoriaNumero: 6, username: "cabezas" },
-  { categoriaNumero: 6, username: "andres" },
-  { categoriaNumero: 6, username: "botas" },
+  { categoriaNumero: 6, descripcion: "Rodrigo Navarro",   usernames: ["rorro"] },
+  { categoriaNumero: 6, descripcion: "Pablo Cabezas",     usernames: ["cabezas"] },
+  { categoriaNumero: 6, descripcion: "Andrés Fernández",  usernames: ["andres"] },
+  { categoriaNumero: 6, descripcion: "Santiago Botas",    usernames: ["botas"] },
 
   // 7) Mayor masonada (eventos)
-  { categoriaNumero: 7, username: "masonada1" },
-  { categoriaNumero: 7, username: "masonada2" },
-  { categoriaNumero: 7, username: "masonada3" },
-  { categoriaNumero: 7, username: "masonada4" },
+  {
+    categoriaNumero: 7,
+    descripcion: "Botas perdiendo los 3 trofeos nada más ganarlos",
+    usernames: ["botas"],
+  },
+  {
+    categoriaNumero: 7,
+    descripcion: "Botas pilla 2 taxis para buscar a Juaco por el barrio y al dar con él se mete hostión en su cara y J pasa de él",
+    usernames: ["botas", "juaco"],
+  },
+  {
+    categoriaNumero: 7,
+    descripcion: "Migu quedándose sobao en la puerta del MSG y siendo despertado por unos munipas",
+    usernames: ["migu"],
+  },
+  {
+    categoriaNumero: 7,
+    descripcion: "Mario rompiéndose dedo del pie por ir en bici mamao e intentar cambiar de canción",
+    usernames: ["rubita"],
+  },
 
   // 8) Most improved player
-  { categoriaNumero: 8, username: "botas" },
-  { categoriaNumero: 8, username: "vega" },
-  { categoriaNumero: 8, username: "andres" },
-  { categoriaNumero: 8, username: "cojo" },
+  { categoriaNumero: 8, descripcion: "Santiago Botas",    usernames: ["botas"] },
+  { categoriaNumero: 8, descripcion: "Gonzalo Vega",      usernames: ["vega"] },
+  { categoriaNumero: 8, descripcion: "Andrés Fernández",  usernames: ["andres"] },
+  { categoriaNumero: 8, descripcion: "Jorge Cojo",        usernames: ["cojo"] },
 
   // 9) Most funny player
-  { categoriaNumero: 9, username: "juaco" },
-  { categoriaNumero: 9, username: "rubita" },
-  { categoriaNumero: 9, username: "andres" },
-  { categoriaNumero: 9, username: "botas" },
+  { categoriaNumero: 9, descripcion: "Joaquín González",  usernames: ["juaco"] },
+  { categoriaNumero: 9, descripcion: "Mario Elvira",      usernames: ["rubita"] },
+  { categoriaNumero: 9, descripcion: "Andrés Fernández",  usernames: ["andres"] },
+  { categoriaNumero: 9, descripcion: "Santiago Botas",    usernames: ["botas"] },
 
   // 10) Mayor druida (eventos)
-  { categoriaNumero: 10, username: "druida1" },
-  { categoriaNumero: 10, username: "druida2" },
-  { categoriaNumero: 10, username: "druida3" },
+  {
+    categoriaNumero: 10,
+    descripcion: "Gramo de farla y cri un martes laborable en piwi cubo laburando al día siguiente",
+    usernames: ["cubo"],
+  },
+  {
+    categoriaNumero: 10,
+    descripcion: "El Cuerdo truca batido de protes a El Loco",
+    usernames: [], // sin usuario asociado en la tabla de usuarios
+  },
+  {
+    categoriaNumero: 10,
+    descripcion: "Migu Andy dando popperazos con pipazos con una manzana en una esquina del chapan",
+    usernames: ["migu", "andres"], // interpreto Andy = Andrés
+  },
 
   // 11) Mejor pisarranas de reparto
-  { categoriaNumero: 11, username: "redon" },
-  { categoriaNumero: 11, username: "igna" },
-  { categoriaNumero: 11, username: "torres" },
-  { categoriaNumero: 11, username: "santi" },
+  { categoriaNumero: 11, descripcion: "Redon",            usernames: ["redon"] },
+  { categoriaNumero: 11, descripcion: "Igna",             usernames: ["igna"] },
+  { categoriaNumero: 11, descripcion: "Torres",           usernames: ["torres"] },
+  { categoriaNumero: 11, descripcion: "Santi",            usernames: ["santi"] },
 
-  // 12) Mayor performance del año
-  { categoriaNumero: 12, username: "performance1" },
-  { categoriaNumero: 12, username: "performance2" },
-  { categoriaNumero: 12, username: "performance3" },
+  // 12) Mayor performance del año (eventos)
+  {
+    categoriaNumero: 12,
+    descripcion: "J y Botas un jueves de montesa + tuk se cuelan en la fiesta del periódico El Español",
+    usernames: ["juaco", "botas"],
+  },
+  {
+    categoriaNumero: 12,
+    descripcion: "Botas después de la ruta de la cirrosis le quita un neceser a un pibe que rompe una ventana para robarlo y lo devuelve",
+    usernames: ["botas"],
+  },
+  {
+    categoriaNumero: 12,
+    descripcion: "Juaco llamando a Daria a las 4am post tuk",
+    usernames: ["juaco"],
+  },
 
   // 13) Mejor clip del año (vídeos)
-  // TODO: cuando tengas URLs reales, ponlas en video_url
-  { categoriaNumero: 13, username: "clip1", video_url: null },
-  { categoriaNumero: 13, username: "clip2", video_url: null },
-  { categoriaNumero: 13, username: "clip3", video_url: null },
+  {
+    categoriaNumero: 13,
+    descripcion: "Help me en Sitges",
+    usernames: [], // si quieres ligarlo a alguien lo cambias
+    video_url: null,
+  },
+  {
+    categoriaNumero: 13,
+    descripcion: "Juaco bailando con niñas",
+    usernames: ["juaco"],
+    video_url: null,
+  },
+  {
+    categoriaNumero: 13,
+    descripcion: "Juaco yappin",
+    usernames: ["juaco"],
+    video_url: null,
+  },
 
-  // 14) Mayor blackout
-  { categoriaNumero: 14, username: "blackout1" },
-  { categoriaNumero: 14, username: "blackout2" },
-  { categoriaNumero: 14, username: "blackout3" },
+  // 14) Mayor blackout (eventos)
+  {
+    categoriaNumero: 14,
+    descripcion: "Ex de Botas y novia de Peki pintando coche de Dieguin y bañera en el pekifest",
+    usernames: ["botas"], // solo mapeo a Botas que sí existe como usuario
+  },
+  {
+    categoriaNumero: 14,
+    descripcion: "Andy post cuidar de fentanyl entra en blackout coge moto y se rompe gemelo sin saber como",
+    usernames: ["andres"], // Andy -> Andrés
+  },
+  {
+    categoriaNumero: 14,
+    descripcion: "Migu un jueves casi tira mesa de DJ, es echado y luego se intenta ligar a la de los tickets",
+    usernames: ["migu"],
+  },
 
   // 15) Mejor borracho
-  { categoriaNumero: 15, username: "olivares" },
-  { categoriaNumero: 15, username: "botas" },
-  { categoriaNumero: 15, username: "cojo" },
-  { categoriaNumero: 15, username: "juaco" },
+  { categoriaNumero: 15, descripcion: "Álvaro Olivares",  usernames: ["olivares"] },
+  { categoriaNumero: 15, descripcion: "Santiago Botas",   usernames: ["botas"] },
+  { categoriaNumero: 15, descripcion: "Jorge Cojo",       usernames: ["cojo"] },
+  { categoriaNumero: 15, descripcion: "Joaquín González", usernames: ["juaco"] },
 ];
 
 // --------- LÓGICA DE SEED ---------
@@ -214,55 +288,108 @@ function seedCategorias(): Promise<void> {
   });
 }
 
+/**
+ * Seed de nominaciones con el nuevo modelo:
+ * - Insert en tabla `nominaciones` (categoria_id, descripcion, video_url)
+ * - Insert en tabla `nominacion_usuarios` para cada username ligado.
+ */
 function seedNominaciones(): Promise<void> {
   return new Promise((resolve, reject) => {
     const sqlUsuarioId = `SELECT id FROM usuarios WHERE username = ?`;
     const sqlInsertNom = `
-      INSERT OR IGNORE INTO categoria_nominados (categoria_id, usuario_id, video_url)
+      INSERT INTO nominaciones (categoria_id, descripcion, video_url)
       VALUES (?, ?, ?)
     `;
+    const sqlInsertNomUsuario = `
+      INSERT INTO nominacion_usuarios (nominacion_id, usuario_id)
+      VALUES (?, ?)
+    `;
+
+    if (nominaciones.length === 0) return resolve();
+
+    let pendientesNominaciones = nominaciones.length;
+
+    const doneNominacion = () => {
+      pendientesNominaciones--;
+      if (pendientesNominaciones === 0) {
+        console.log("Nominaciones sembradas");
+        resolve();
+      }
+    };
 
     db.serialize(() => {
-      const stmtInsert = db.prepare(sqlInsertNom);
-      let pendientes = nominaciones.length;
-
-      if (pendientes === 0) return resolve();
-
       nominaciones.forEach((n) => {
-        db.get(sqlUsuarioId, [n.username], (err, row) => {
-          if (err) {
-            console.error("Error buscando usuario para nominación", n, err.message);
-          } else if (!row) {
-            console.error("No se encontró usuario para nominación", n.username);
-          } else {
-            const categoriaId = n.categoriaNumero; // usamos el número como id directamente
-            stmtInsert.run(
-              [categoriaId, row.id, n.video_url || null],
-              (err2) => {
-                if (err2) {
-                  console.error(
-                    "Error insertando nominación",
-                    n,
-                    err2.message
-                  );
-                } else {
-                  console.log(
-                    "Nominación insertada/ignorada:",
-                    `cat ${categoriaId} -> ${n.username}`
-                  );
-                }
-              }
-            );
-          }
+        db.run(
+          sqlInsertNom,
+          [n.categoriaNumero, n.descripcion, n.video_url ?? null],
+          function (errNom: any) {
+            if (errNom) {
+              console.error("Error insertando nominación", n, errNom.message);
+              // aunque falle esta nominación, seguimos con el resto
+              return doneNominacion();
+            }
 
-          pendientes--;
-          if (pendientes === 0) {
-            stmtInsert.finalize((err3) => {
-              if (err3) return reject(err3);
-              resolve();
+            const nominacionId = this.lastID;
+            console.log(
+              "Nominación insertada:",
+              `cat ${n.categoriaNumero} -> ${n.descripcion} (id=${nominacionId})`
+            );
+
+            // Si no hay usuarios ligados, terminamos esta nominación
+            if (!n.usernames || n.usernames.length === 0) {
+              return doneNominacion();
+            }
+
+            let pendientesUsuarios = n.usernames.length;
+
+            const doneUsuario = () => {
+              pendientesUsuarios--;
+              if (pendientesUsuarios === 0) {
+                doneNominacion();
+              }
+            };
+
+            n.usernames.forEach((username) => {
+              db.get(sqlUsuarioId, [username], (errUser: any, rowUser: any) => {
+                if (errUser) {
+                  console.error(
+                    "Error buscando usuario para nominación",
+                    username,
+                    errUser.message
+                  );
+                  return doneUsuario();
+                }
+                if (!rowUser) {
+                  console.error(
+                    "No se encontró usuario para nominación",
+                    username
+                  );
+                  return doneUsuario();
+                }
+
+                db.run(
+                  sqlInsertNomUsuario,
+                  [nominacionId, rowUser.id],
+                  (errLink: any) => {
+                    if (errLink) {
+                      console.error(
+                        "Error insertando nominacion_usuarios",
+                        { nominacionId, username },
+                        errLink.message
+                      );
+                    } else {
+                      console.log(
+                        "Ligado usuario a nominación:",
+                        `nom ${nominacionId} <- ${username}`
+                      );
+                    }
+                    doneUsuario();
+                  }
+                );
+              });
             });
           }
-        });
+        );
       });
     });
   });

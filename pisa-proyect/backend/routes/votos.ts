@@ -11,17 +11,17 @@ const router = express.Router();
  * {
  *   "votante_id": 1,
  *   "categoria_id": 2,
- *   "nominado_usuario_id": 3
+ *   "nominacion_id": 3
  * }
  */
 router.post("/", (req: Request, res: Response) => {
-  const { votante_id, categoria_id, nominado_usuario_id } = req.body as {
+  const { votante_id, categoria_id, nominacion_id } = req.body as {
     votante_id?: number;
     categoria_id?: number;
-    nominado_usuario_id?: number;
+    nominacion_id?: number;
   };
 
-  if (!votante_id || !categoria_id || !nominado_usuario_id) {
+  if (!votante_id || !categoria_id || !nominacion_id) {
     return res.status(400).json({ error: "Faltan datos en el body" });
   }
 
@@ -43,13 +43,13 @@ router.post("/", (req: Request, res: Response) => {
       }
 
       const sqlInsert = `
-        INSERT INTO votos (votante_id, categoria_id, nominado_usuario_id)
+        INSERT INTO votos (votante_id, categoria_id, nominacion_id)
         VALUES (?, ?, ?)
       `;
 
       db.run(
         sqlInsert,
-        [votante_id, categoria_id, nominado_usuario_id],
+        [votante_id, categoria_id, nominacion_id],
         function (err2: any) {
           if (err2) return res.status(500).json({ error: err2.message });
 
@@ -57,7 +57,7 @@ router.post("/", (req: Request, res: Response) => {
             id: this.lastID,
             votante_id,
             categoria_id,
-            nominado_usuario_id,
+            nominacion_id,
           };
 
           res.status(201).json(nuevo);

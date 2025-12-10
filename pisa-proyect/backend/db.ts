@@ -7,6 +7,7 @@ export const db = new sqlite3.Database(dbPath);
 
 export function initDb() {
   db.serialize(() => {
+    // Usuarios
     db.run(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,6 +18,7 @@ export function initDb() {
       )
     `);
 
+    // Categorías
     db.run(`
       CREATE TABLE IF NOT EXISTS categorias (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,26 +28,44 @@ export function initDb() {
       )
     `);
 
+    /* 
+      NUEVO MODELO:
+      - nominaciones: lo que se vota dentro de una categoría (evento / clip / persona)
+      - nominacion_usuarios: qué usuarios están ligados a esa nominación (1 o varios)
+    */
+
+    // Nominaciones (evento a votar dentro de una categoría)
     db.run(`
-      CREATE TABLE IF NOT EXISTS categoria_nominados (
+      CREATE TABLE IF NOT EXISTS nominaciones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         categoria_id INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
+        descripcion TEXT NOT NULL,
         video_url TEXT,
-        FOREIGN KEY (categoria_id) REFERENCES categorias(id),
-        FOREIGN KEY (usuario_id)  REFERENCES usuarios(id)
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id)
       )
     `);
 
+    // Usuarios ligados a una nominación (1 o varios)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS nominacion_usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nominacion_id INTEGER NOT NULL,
+        usuario_id INTEGER NOT NULL,
+        FOREIGN KEY (nominacion_id) REFERENCES nominaciones(id),
+        FOREIGN KEY (usuario_id)    REFERENCES usuarios(id)
+      )
+    `);
+
+    // Votos: usuario vota una nominación en una categoría
     db.run(`
       CREATE TABLE IF NOT EXISTS votos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         votante_id INTEGER NOT NULL,
         categoria_id INTEGER NOT NULL,
-        nominado_usuario_id INTEGER NOT NULL,
-        FOREIGN KEY (votante_id)          REFERENCES usuarios(id),
-        FOREIGN KEY (categoria_id)        REFERENCES categorias(id),
-        FOREIGN KEY (nominado_usuario_id) REFERENCES usuarios(id)
+        nominacion_id INTEGER NOT NULL,
+        FOREIGN KEY (votante_id)   REFERENCES usuarios(id),
+        FOREIGN KEY (categoria_id) REFERENCES categorias(id),
+        FOREIGN KEY (nominacion_id) REFERENCES nominaciones(id)
       )
     `);
   });

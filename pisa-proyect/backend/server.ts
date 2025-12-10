@@ -4,7 +4,6 @@ import cors from "cors";
 import { initDb } from "./db";
 import authRoutes from "./routes/auth";
 
-// IMPORTS CORRECTOS (default import)
 import usuariosRoutes from "./routes/usuarios";
 import categoriasRoutes from "./routes/categorias";
 import votosRoutes from "./routes/votos";

@@ -13,8 +13,62 @@ import type {
 const router = express.Router();
 
 /**
+ * Helper: carga todas las nominaciones con sus usuarios.
+ */
+function cargarNominacionesConUsuarios(
+  callback: (err: any, nominaciones: CategoriaNominadoRespuesta[]) => void
+) {
+  const sql = `
+    SELECT
+      n.id              AS nominacion_id,
+      n.categoria_id    AS categoria_id,
+      n.descripcion     AS descripcion,
+      n.video_url       AS video_url,
+      u.id              AS usuario_id,
+      u.username        AS username,
+      u.display_name    AS display_name,
+      u.rol             AS rol
+    FROM nominaciones n
+    LEFT JOIN nominacion_usuarios nu ON nu.nominacion_id = n.id
+    LEFT JOIN usuarios u ON u.id = nu.usuario_id
+  `;
+
+  db.all(sql, [], (err: any, rows: any[]) => {
+    if (err) return callback(err, []);
+
+    const map: Record<number, CategoriaNominadoRespuesta> = {};
+
+    rows.forEach((r) => {
+      let nom = map[r.nominacion_id];
+      if (!nom) {
+        nom = {
+          id: r.nominacion_id,
+          categoria_id: r.categoria_id,
+          descripcion: r.descripcion,
+          video_url: r.video_url,
+          usuarios: [],
+        } as CategoriaNominadoRespuesta;
+
+        map[r.nominacion_id] = nom;
+      }
+
+      if (r.usuario_id) {
+        nom.usuarios.push({
+          id: r.usuario_id,
+          username: r.username,
+          display_name: r.display_name,
+          rol: r.rol,
+        });
+      }
+    });
+
+    callback(null, Object.values(map));
+  });
+}
+
+/**
  * GET /categorias
- * Devuelve categorías con sus nominados.
+ * Devuelve categorías con sus nominaciones (cada una con usuarios asociados).
  */
 router.get("/", (_req: Request, res: Response) => {
   db.all("SELECT * FROM categorias", [], (err: any, categoriasRows: any[]) => {
@@ -27,31 +81,11 @@ router.get("/", (_req: Request, res: Response) => {
       es_videos: !!c.es_videos,
     }));
 
-    const sqlNominados = `
-      SELECT cn.id, cn.categoria_id, cn.usuario_id, cn.video_url,
-             u.username, u.display_name, u.rol
-      FROM categoria_nominados cn
-      JOIN usuarios u ON u.id = cn.usuario_id
-    `;
-
-    db.all(sqlNominados, [], (err2: any, nominadosRows: any[]) => {
+    cargarNominacionesConUsuarios((err2, nominaciones) => {
       if (err2) return res.status(500).json({ error: err2.message });
 
-      const nominados: CategoriaNominadoRespuesta[] = nominadosRows.map((n) => ({
-        id: n.id,
-        categoria_id: n.categoria_id,
-        usuario_id: n.usuario_id,
-        video_url: n.video_url,
-        usuario: {
-          id: n.usuario_id,
-          username: n.username,
-          display_name: n.display_name,
-          rol: n.rol,
-        },
-      }));
-
       const resultado: CategoriaConNominados[] = categorias.map((c) => {
-        const nominadosCat = nominados.filter(
+        const nominadosCat = nominaciones.filter(
           (n) => n.categoria_id === c.id
         );
 
@@ -68,7 +102,7 @@ router.get("/", (_req: Request, res: Response) => {
 
 /**
  * GET /categorias/estado/:votanteId
- * Devuelve categorías con nominados, si ha votado y top 2.
+ * Devuelve categorías con nominaciones, si ha votado y top 2 nominaciones.
  */
 router.get("/estado/:votanteId", (req: Request, res: Response) => {
   const votanteId = Number(req.params.votanteId);
@@ -83,34 +117,14 @@ router.get("/estado/:votanteId", (req: Request, res: Response) => {
       es_videos: !!c.es_videos,
     }));
 
-    const sqlNominados = `
-      SELECT cn.id, cn.categoria_id, cn.usuario_id, cn.video_url,
-             u.username, u.display_name, u.rol
-      FROM categoria_nominados cn
-      JOIN usuarios u ON u.id = cn.usuario_id
-    `;
-
-    db.all(sqlNominados, [], (err2: any, nominadosRows: any[]) => {
+    cargarNominacionesConUsuarios((err2, nominaciones) => {
       if (err2) return res.status(500).json({ error: err2.message });
-
-      const nominados: CategoriaNominadoRespuesta[] = nominadosRows.map((n) => ({
-        id: n.id,
-        categoria_id: n.categoria_id,
-        usuario_id: n.usuario_id,
-        video_url: n.video_url,
-        usuario: {
-          id: n.usuario_id,
-          username: n.username,
-          display_name: n.display_name,
-          rol: n.rol,
-        },
-      }));
 
       db.all("SELECT * FROM votos", [], (err3: any, votosRows: any[]) => {
         if (err3) return res.status(500).json({ error: err3.message });
 
         const resultado: CategoriaEstado[] = categorias.map((c) => {
-          const nominadosCat = nominados.filter(
+          const nominadosCat = nominaciones.filter(
             (n) => n.categoria_id === c.id
           );
 
@@ -125,12 +139,16 @@ router.get("/estado/:votanteId", (req: Request, res: Response) => {
           const conteo: TopNominadoResumen[] = nominadosCat
             .map((n) => {
               const count = votosCategoria.filter(
-                (v: any) => v.nominado_usuario_id === n.usuario.id
+                (v: any) => v.nominacion_id === n.id
               ).length;
 
               return {
-                nominadoUsuarioId: n.usuario.id,
-                display_name: n.usuario.display_name,
+                nominacionId: n.id,
+                descripcion: n.descripcion,
+                usuarios: n.usuarios.map((u) => ({
+                  id: u.id,
+                  display_name: u.display_name,
+                })),
                 votos: count,
               };
             })
@@ -156,6 +174,7 @@ router.get("/estado/:votanteId", (req: Request, res: Response) => {
 
 /**
  * POST /categorias
+ * (sin cambios, salvo que ahora las nominaciones están en otra tabla)
  */
 router.post("/", (req: Request, res: Response) => {
   const { nombre, descripcion, es_videos } = req.body as {
@@ -191,37 +210,68 @@ router.post("/", (req: Request, res: Response) => {
 
 /**
  * POST /categorias/:categoriaId/nominados
+ * Crea una nueva nominación dentro de la categoría, con 1..N usuarios asociados.
+ *
+ * Body:
+ * {
+ *   "descripcion": "Clip del día X",
+ *   "video_url": "https://...",
+ *   "usuario_ids": [1, 2, 3]
+ * }
  */
 router.post("/:categoriaId/nominados", (req: Request, res: Response) => {
   const categoriaId = Number(req.params.categoriaId);
-  const { usuario_id, video_url } = req.body as {
-    usuario_id?: number;
+  const { descripcion, video_url, usuario_ids } = req.body as {
+    descripcion?: string;
     video_url?: string;
+    usuario_ids?: number[];
   };
 
-  if (!usuario_id) {
-    return res.status(400).json({ error: "usuario_id es obligatorio" });
+  if (!descripcion || !usuario_ids || usuario_ids.length === 0) {
+    return res.status(400).json({
+      error:
+        "descripcion y usuario_ids (al menos un usuario) son obligatorios",
+    });
   }
 
-  db.run(
-    `
-    INSERT INTO categoria_nominados (categoria_id, usuario_id, video_url)
-    VALUES (?, ?, ?)
-    `,
-    [categoriaId, usuario_id, video_url || null],
-    function (err: any) {
-      if (err) return res.status(500).json({ error: err.message });
+  db.serialize(() => {
+    db.run(
+      `
+      INSERT INTO nominaciones (categoria_id, descripcion, video_url)
+      VALUES (?, ?, ?)
+      `,
+      [categoriaId, descripcion, video_url || null],
+      function (err: any) {
+        if (err) return res.status(500).json({ error: err.message });
 
-      const nuevo: CategoriaNominado = {
-        id: this.lastID,
-        categoria_id: categoriaId,
-        usuario_id,
-        video_url: video_url || null,
-      };
+        const nominacionId = this.lastID;
 
-      res.status(201).json(nuevo);
-    }
-  );
+        const stmt = db.prepare(
+          "INSERT INTO nominacion_usuarios (nominacion_id, usuario_id) VALUES (?, ?)"
+        );
+
+        usuario_ids.forEach((uid) => {
+          stmt.run(nominacionId, uid);
+        });
+
+        stmt.finalize((err2: any) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+
+          const nuevo: CategoriaNominado = {
+            id: nominacionId,
+            categoria_id: categoriaId,
+            descripcion,
+            video_url: video_url || null,
+          };
+
+          res.status(201).json({
+            ...nuevo,
+            usuario_ids,
+          });
+        });
+      }
+    );
+  });
 });
 
 export default router;
