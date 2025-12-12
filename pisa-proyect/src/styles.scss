@@ -1,1 +1,30 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  /* VERDES PRINCIPALES – más suaves */
+  --green-primary: #2E7D32;  /* verde hoja */
+  --green-dark: #1B5E20;     /* verde jungla */
+  --green-medium: #4CAF50;   /* verde bambú */
+  --green-light: #b4dfb5;    /* verde musgo claro */
+  --green-soft: #C8E6C9;     /* verde neblina */
+
+  --white-soft: #F6FFF3;
+  --black-forest: #0F1A0F;
+  --test-forest: #c78f7a;
+
+  /* GRADIENTES ajustados para modo claro */
+  --gradient-card: linear-gradient(
+    145deg,
+    rgba(200, 230, 201, 0.85),
+    rgba(165, 214, 167, 0.6)
+  );
+}
+
+body {
+  background: url('./assets/frog-pattern-intercalado-bordes.svg');
+  background-color: var(--green-soft); 
+  background-repeat: no-repeat;
+  background-size: cover;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  color: var(--green-dark);
+}
+

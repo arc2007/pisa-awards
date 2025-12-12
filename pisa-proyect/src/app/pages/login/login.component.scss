@@ -1,0 +1,55 @@
+.login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 2.5rem;
+    width: 40%;
+    margin: 60px auto;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--green-light) ;
+}
+
+.logo-style{
+    width: 60%;
+}
+
+.form{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 60%;
+}
+
+.form-group {
+    width: 80%;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+input {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    margin-top: 2rem;
+    width: 70%;
+    padding: 8px 0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: #5f8d5c;
+    color: white;
+    font-weight: 600;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}

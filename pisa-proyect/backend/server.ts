@@ -2,8 +2,8 @@
 import express from "express";
 import cors from "cors";
 import { initDb } from "./db";
-import authRoutes from "./routes/auth";
 
+import authRoutes from "./routes/auth";
 import usuariosRoutes from "./routes/usuarios";
 import categoriasRoutes from "./routes/categorias";
 import votosRoutes from "./routes/votos";
@@ -11,16 +11,21 @@ import votosRoutes from "./routes/votos";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS: permite peticiones desde el front en http://localhost:4200
 app.use(
   cors({
     origin: "http://localhost:4200",
   })
 );
+// Si quieres, para desarrollo puedes usar simplemente:
+// app.use(cors());
+
 app.use(express.json());
 
 initDb();
 
-app.use(authRoutes);                
+// 👇 Aquí montamos el router de auth con prefijo /auth
+app.use("/auth", authRoutes);          // => POST /auth/login
 app.use("/usuarios", usuariosRoutes);
 app.use("/categorias", categoriasRoutes);
 app.use("/votos", votosRoutes);

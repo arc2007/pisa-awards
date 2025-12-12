@@ -1,0 +1,126 @@
+.categorias-container {
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.categoria-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.categoria-item {
+  background: #ffffff;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.categoria-main {
+  padding: 1rem;
+  cursor: pointer;
+  position: relative;
+}
+
+.categoria-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+}
+
+.descripcion {
+  margin-top: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  background: #ffe0e0;
+  color: #a40000;
+  white-space: nowrap;
+}
+
+.badge-votado {
+  background: #e0f4e8;
+  color: #006b3f;
+}
+
+/* CHEVRON */
+.chevron {
+  text-align: center;
+  margin-top: 0.5rem;
+
+  span {
+    display: inline-block;
+    transition: transform 0.25s ease;
+  }
+
+  span.abierto {
+    transform: rotate(180deg);
+  }
+}
+
+/* DESPLEGABLE */
+.categoria-detalle {
+  padding: 1rem;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+/* OPCIONES DE VOTO */
+.opciones {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.opcion {
+  padding: 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  background: #fff;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #333;
+    background: #f2f2f2;
+  }
+}
+
+/* TOP NOMINADOS */
+.top {
+  small {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #555;
+  }
+
+  ol {
+    padding-left: 1.2rem;
+    margin: 0;
+
+    li {
+      margin-bottom: 0.4rem;
+      font-size: 0.95rem;
+    }
+  }
+}

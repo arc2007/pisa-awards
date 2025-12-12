@@ -1,0 +1,97 @@
+<svg
+  viewBox="-6 0 500 120"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="Pisarranas"
+  preserveAspectRatio="xMidYMid meet"
+  style="display:block; width:100%; height:auto; max-width:500px;"
+>
+  <defs>
+    <linearGradient id="pisarranasTextGradient" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2E7D32"/>
+      <stop offset="50%" stop-color="#3c8f3fff"/>
+      <stop offset="100%" stop-color="#327036ff"/>
+    </linearGradient>
+
+    <!-- Animación: crecer/decrecer -->
+    <style>
+      @keyframes awardsPulse {
+        0%, 100% { transform: translate(370px, 80px) rotate(-20deg) scale(1); }
+        50%      { transform: translate(370px, 80px) rotate(-20deg) scale(1.28); }
+      }
+      .awards-badge {
+        transform-origin: 0 0;
+        animation: awardsPulse 1.6s ease-in-out infinite;
+      }
+    </style>
+  </defs>
+
+  <g transform="translate(35,0)">
+    <g transform="translate(0,20)">
+      <text x="0" y="52"
+            font-family="'Trebuchet MS', system-ui, sans-serif"
+            font-size="52"
+            font-weight="900"
+            fill="url(#pisarranasTextGradient)"
+            stroke="#0F1A0F"
+            stroke-width="1.7"
+            letter-spacing="1.5">
+        <tspan>P</tspan>
+        <tspan dy="-2">i</tspan>
+        <tspan dy="1">s</tspan>
+        <tspan dy="-1">a</tspan>
+        <tspan dy="2">r</tspan>
+        <tspan dy="-2">r</tspan>
+        <tspan dy="1">a</tspan>
+        <tspan dy="-1">n</tspan>
+        <tspan dy="2">a</tspan>
+        <tspan dx="3" dy="-2">s</tspan>
+      </text>
+
+      <!-- "AWARDS" encima de la última letra (ajusta x/y si lo quieres más a la derecha/arriba) -->
+      <g class="awards-badge" >
+        <!-- fondo tipo etiqueta (opcional) -->
+        <rect x="-6" y="-14" rx="4" ry="4" width="72" height="20"
+              fill="#FFC107" stroke="#5C4A00" stroke-width="1" opacity="0.95"/>
+        <text x="2" y="0"
+              font-family="'Trebuchet MS', system-ui, sans-serif"
+              font-size="12"
+              font-weight="900"
+              fill="#2A1A00"
+              letter-spacing="1">
+          AWARDS
+        </text>
+      </g>
+    </g>
+
+    <g transform="translate(340,26)">
+      <ellipse cx="26" cy="32" rx="24" ry="17" fill="#4CAF50" stroke="#1B5E20" stroke-width="2"/>
+      <ellipse cx="26" cy="36" rx="16" ry="10" fill="#A5D6A7" opacity="0.9"/>
+
+      <circle cx="16" cy="18" r="7.5" fill="#C8E6C9" stroke="#1B5E20" stroke-width="1.5"/>
+      <circle cx="36" cy="18" r="7.5" fill="#C8E6C9" stroke="#1B5E20" stroke-width="1.5"/>
+
+      <circle cx="16" cy="18" r="3" fill="#1B5E20"/>
+      <circle cx="36" cy="18" r="3" fill="#1B5E20"/>
+
+      <circle cx="14.5" cy="16.5" r="1.2" fill="#FFFFFF" opacity="0.85"/>
+      <circle cx="34.5" cy="16.5" r="1.2" fill="#FFFFFF" opacity="0.85"/>
+
+      <path d="M14 32 Q26 42 38 32" stroke="#1B5E20" stroke-width="2.5" stroke-linecap="round"/>
+
+      <circle cx="12" cy="30" r="2.2" fill="#FFCDD2" opacity="0.85"/>
+      <circle cx="40" cy="30" r="2.2" fill="#FFCDD2" opacity="0.85"/>
+
+      <path d="M12 38 Q8 44 10 48" stroke="#1B5E20" stroke-width="2" stroke-linecap="round"/>
+      <path d="M40 38 Q44 44 42 48" stroke="#1B5E20" stroke-width="2" stroke-linecap="round"/>
+
+      <circle cx="9" cy="49" r="1.4" fill="#2E7D32"/>
+      <circle cx="12" cy="50" r="1.4" fill="#2E7D32"/>
+      <circle cx="15" cy="49" r="1.4" fill="#2E7D32"/>
+
+      <circle cx="37" cy="49" r="1.4" fill="#2E7D32"/>
+      <circle cx="40" cy="50" r="1.4" fill="#2E7D32"/>
+      <circle cx="43" cy="49" r="1.4" fill="#2E7D32"/>
+    </g>
+  </g>
+</svg>

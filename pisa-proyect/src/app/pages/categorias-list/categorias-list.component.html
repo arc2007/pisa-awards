@@ -1,0 +1,70 @@
+<div class="categorias-container" *ngIf="usuario">
+  <div class="header">
+    <h1>PisaCategorias 2025</h1>
+    <div class="user-info">
+      <button (click)="authService.logout(); router.navigate(['/login'])">
+        Salir
+      </button>
+    </div>
+  </div>
+
+  <p *ngIf="loading">Cargando categorías...</p>
+
+  <ul class="categoria-list" *ngIf="!loading">
+    <li class="categoria-item" *ngFor="let cat of categorias">
+      <!-- CABECERA TARJETA -->
+      <div class="categoria-main" (click)="toggleCategoria(cat)">
+        <div class="categoria-title">
+          <h2>{{ cat.nombre }}</h2>
+          <span
+            class="badge"
+            [class.badge-votado]="cat.haVotado"
+          >
+            {{ cat.haVotado ? 'Ya has votado' : 'Pendiente de votar' }}
+          </span>
+        </div>
+
+        <p class="descripcion" *ngIf="cat.descripcion">
+          {{ cat.descripcion }}
+        </p>
+
+        <!-- CHEVRON -->
+        <div class="chevron">
+          <span
+            [class.abierto]="categoriaAbierta === cat.id"
+          >
+            ▼
+          </span>
+        </div>
+      </div>
+
+      <!-- DESPLEGABLE -->
+      <div
+        class="categoria-detalle"
+        *ngIf="categoriaAbierta === cat.id"
+      >
+        <!-- SI NO HA VOTADO -->
+        <div *ngIf="!cat.haVotado" class="opciones">
+          <div
+            class="opcion"
+            *ngFor="let nom of cat.nominados"
+            (click)="abrirModal(cat, nom); $event.stopPropagation()"
+          >
+            {{ nom.descripcion }}
+          </div>
+        </div>
+
+        <!-- SI YA HA VOTADO -->
+        <div *ngIf="cat.haVotado" class="top">
+          <small>Top nominaciones:</small>
+          <ol>
+            <li *ngFor="let t of cat.topNominados">
+              <strong>{{ t.descripcion }}</strong>
+              <span> ({{ t.votos }} votos)</span>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>
