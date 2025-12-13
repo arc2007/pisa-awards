@@ -11,7 +11,7 @@ import { VotarModalComponent } from '../components/votar-modal/votar-modal.compo
 @Component({
   selector: 'app-categorias-list',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, VotarModalComponent],
+  imports: [CommonModule, MatDialogModule],
   templateUrl: './categorias-list.component.html',
   styleUrls: ['./categorias-list.component.scss'],
 })
@@ -50,6 +50,7 @@ export class CategoriasListComponent implements OnInit {
         this.categorias = cats;
         this.loading = false;
         this.cdr.detectChanges();
+        console.log(cats)
       });
   }
 
@@ -90,11 +91,20 @@ export class CategoriasListComponent implements OnInit {
             .subscribe((top) => {
               categoria.topNominados = top;
             });
-          this.cdr.detectChanges();
         },
         error: (err) => {
           alert(err.error?.error || 'Error al votar');
         },
       });
+  }
+
+  getUsuariosTexto(nom: any): string {
+    if (!nom?.usuarios || nom.usuarios.length === 0) {
+      return '';
+    }
+
+    return nom.usuarios
+      .map((u: any) => u.display_name)
+      .join(', ');
   }
 }

@@ -16,10 +16,7 @@
       <div class="categoria-main" (click)="toggleCategoria(cat)">
         <div class="categoria-title">
           <h2>{{ cat.nombre }}</h2>
-          <span
-            class="badge"
-            [class.badge-votado]="cat.haVotado"
-          >
+          <span class="badge" [class.badge-votado]="cat.haVotado">
             {{ cat.haVotado ? 'Ya has votado' : 'Pendiente de votar' }}
           </span>
         </div>
@@ -30,27 +27,19 @@
 
         <!-- CHEVRON -->
         <div class="chevron">
-          <span
-            [class.abierto]="categoriaAbierta === cat.id"
-          >
+          <span [class.abierto]="categoriaAbierta === cat.id">
             ▼
           </span>
         </div>
       </div>
 
       <!-- DESPLEGABLE -->
-      <div
-        class="categoria-detalle"
-        *ngIf="categoriaAbierta === cat.id"
-      >
+      <div class="categoria-detalle" *ngIf="categoriaAbierta === cat.id">
         <!-- SI NO HA VOTADO -->
         <div *ngIf="!cat.haVotado" class="opciones">
-          <div
-            class="opcion"
-            *ngFor="let nom of cat.nominados"
-            (click)="abrirModal(cat, nom); $event.stopPropagation()"
-          >
-            {{ nom.descripcion }}
+          <div class="opcion" *ngFor="let nom of cat.nominados"
+            (click)="abrirModal(cat, nom); $event.stopPropagation()">
+            <div>{{ nom.descripcion }}</div>
           </div>
         </div>
 

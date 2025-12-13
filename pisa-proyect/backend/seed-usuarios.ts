@@ -77,7 +77,6 @@ const categorias: CategoriaSeed[] = [
 ];
 
 // 3) NOMINACIONES (una fila por opción del PDF, con 1..N usernames)
-
 const nominaciones: NominacionSeed[] = [
   // 1) Mejor creador de memes
   { categoriaNumero: 1, descripcion: "Daniel García",     usernames: ["nigy"] },
@@ -158,12 +157,12 @@ const nominaciones: NominacionSeed[] = [
   {
     categoriaNumero: 10,
     descripcion: "El Cuerdo truca batido de protes a El Loco",
-    usernames: [], // sin usuario asociado en la tabla de usuarios
+    usernames: [],
   },
   {
     categoriaNumero: 10,
     descripcion: "Migu Andy dando popperazos con pipazos con una manzana en una esquina del chapan",
-    usernames: ["migu", "andres"], // interpreto Andy = Andrés
+    usernames: ["migu", "andres"],
   },
 
   // 11) Mejor pisarranas de reparto
@@ -190,35 +189,20 @@ const nominaciones: NominacionSeed[] = [
   },
 
   // 13) Mejor clip del año (vídeos)
-  {
-    categoriaNumero: 13,
-    descripcion: "Help me en Sitges",
-    usernames: [], // si quieres ligarlo a alguien lo cambias
-    video_url: null,
-  },
-  {
-    categoriaNumero: 13,
-    descripcion: "Juaco bailando con niñas",
-    usernames: ["juaco"],
-    video_url: null,
-  },
-  {
-    categoriaNumero: 13,
-    descripcion: "Juaco yappin",
-    usernames: ["juaco"],
-    video_url: null,
-  },
+  { categoriaNumero: 13, descripcion: "Help me en Sitges",       usernames: [],        video_url: null },
+  { categoriaNumero: 13, descripcion: "Juaco bailando con niñas", usernames: ["juaco"], video_url: null },
+  { categoriaNumero: 13, descripcion: "Juaco yappin",            usernames: ["juaco"], video_url: null },
 
   // 14) Mayor blackout (eventos)
   {
     categoriaNumero: 14,
     descripcion: "Ex de Botas y novia de Peki pintando coche de Dieguin y bañera en el pekifest",
-    usernames: ["botas"], // solo mapeo a Botas que sí existe como usuario
+    usernames: ["botas"],
   },
   {
     categoriaNumero: 14,
     descripcion: "Andy post cuidar de fentanyl entra en blackout coge moto y se rompe gemelo sin saber como",
-    usernames: ["andres"], // Andy -> Andrés
+    usernames: ["andres"],
   },
   {
     categoriaNumero: 14,
@@ -245,17 +229,11 @@ function seedUsuarios(): Promise<void> {
       const stmt = db.prepare(sql);
       usuarios.forEach((u) => {
         stmt.run([u.username, u.display_name, u.rol, u.password], (err) => {
-          if (err) {
-            console.error("Error insertando usuario", u.username, err.message);
-          } else {
-            console.log("Usuario insertado/ignorado:", u.username);
-          }
+          if (err) console.error("Error insertando usuario", u.username, err.message);
+          else console.log("Usuario insertado/ignorado:", u.username);
         });
       });
-      stmt.finalize((err) => {
-        if (err) return reject(err);
-        resolve();
-      });
+      stmt.finalize((err) => (err ? reject(err) : resolve()));
     });
   });
 }
@@ -272,36 +250,43 @@ function seedCategorias(): Promise<void> {
         stmt.run(
           [c.numero, c.nombre, c.descripcion || null, c.es_videos ? 1 : 0],
           (err) => {
-            if (err) {
-              console.error("Error insertando categoria", c.numero, c.nombre, err.message);
-            } else {
-              console.log("Categoría insertada/ignorada:", c.numero, c.nombre);
-            }
+            if (err) console.error("Error insertando categoria", c.numero, c.nombre, err.message);
+            else console.log("Categoría insertada/ignorada:", c.numero, c.nombre);
           }
         );
       });
-      stmt.finalize((err) => {
-        if (err) return reject(err);
-        resolve();
-      });
+      stmt.finalize((err) => (err ? reject(err) : resolve()));
     });
   });
 }
 
 /**
- * Seed de nominaciones con el nuevo modelo:
- * - Insert en tabla `nominaciones` (categoria_id, descripcion, video_url)
- * - Insert en tabla `nominacion_usuarios` para cada username ligado.
+ * Seed de nominaciones con el nuevo modelo (idempotente):
+ * - INSERT OR IGNORE en `nominaciones`
+ * - Obtener id real con SELECT
+ * - INSERT OR IGNORE en `nominacion_usuarios`
+ *
+ * Recomendación: tener este índice único en db.ts:
+ *   CREATE UNIQUE INDEX IF NOT EXISTS ux_nominaciones_cat_desc
+ *   ON nominaciones(categoria_id, descripcion);
  */
 function seedNominaciones(): Promise<void> {
   return new Promise((resolve, reject) => {
     const sqlUsuarioId = `SELECT id FROM usuarios WHERE username = ?`;
+
     const sqlInsertNom = `
-      INSERT INTO nominaciones (categoria_id, descripcion, video_url)
+      INSERT OR IGNORE INTO nominaciones (categoria_id, descripcion, video_url)
       VALUES (?, ?, ?)
     `;
+
+    const sqlGetNomId = `
+      SELECT id FROM nominaciones
+      WHERE categoria_id = ? AND descripcion = ?
+      LIMIT 1
+    `;
+
     const sqlInsertNomUsuario = `
-      INSERT INTO nominacion_usuarios (nominacion_id, usuario_id)
+      INSERT OR IGNORE INTO nominacion_usuarios (nominacion_id, usuario_id)
       VALUES (?, ?)
     `;
 
@@ -311,10 +296,7 @@ function seedNominaciones(): Promise<void> {
 
     const doneNominacion = () => {
       pendientesNominaciones--;
-      if (pendientesNominaciones === 0) {
-        console.log("Nominaciones sembradas");
-        resolve();
-      }
+      if (pendientesNominaciones === 0) resolve();
     };
 
     db.serialize(() => {
@@ -322,72 +304,73 @@ function seedNominaciones(): Promise<void> {
         db.run(
           sqlInsertNom,
           [n.categoriaNumero, n.descripcion, n.video_url ?? null],
-          function (errNom: any) {
+          (errNom: any) => {
             if (errNom) {
               console.error("Error insertando nominación", n, errNom.message);
-              // aunque falle esta nominación, seguimos con el resto
               return doneNominacion();
             }
 
-            const nominacionId = this.lastID;
-            console.log(
-              "Nominación insertada:",
-              `cat ${n.categoriaNumero} -> ${n.descripcion} (id=${nominacionId})`
-            );
-
-            // Si no hay usuarios ligados, terminamos esta nominación
-            if (!n.usernames || n.usernames.length === 0) {
-              return doneNominacion();
-            }
-
-            let pendientesUsuarios = n.usernames.length;
-
-            const doneUsuario = () => {
-              pendientesUsuarios--;
-              if (pendientesUsuarios === 0) {
-                doneNominacion();
-              }
-            };
-
-            n.usernames.forEach((username) => {
-              db.get(sqlUsuarioId, [username], (errUser: any, rowUser: any) => {
-                if (errUser) {
+            db.get(
+              sqlGetNomId,
+              [n.categoriaNumero, n.descripcion],
+              (errGet: any, rowNom: any) => {
+                if (errGet || !rowNom) {
                   console.error(
-                    "Error buscando usuario para nominación",
-                    username,
-                    errUser.message
+                    "Error obteniendo id de nominación",
+                    n,
+                    errGet?.message ?? "No encontrada"
                   );
-                  return doneUsuario();
-                }
-                if (!rowUser) {
-                  console.error(
-                    "No se encontró usuario para nominación",
-                    username
-                  );
-                  return doneUsuario();
+                  return doneNominacion();
                 }
 
-                db.run(
-                  sqlInsertNomUsuario,
-                  [nominacionId, rowUser.id],
-                  (errLink: any) => {
-                    if (errLink) {
-                      console.error(
-                        "Error insertando nominacion_usuarios",
-                        { nominacionId, username },
-                        errLink.message
-                      );
-                    } else {
-                      console.log(
-                        "Ligado usuario a nominación:",
-                        `nom ${nominacionId} <- ${username}`
-                      );
-                    }
-                    doneUsuario();
-                  }
+                const nominacionId = rowNom.id;
+                console.log(
+                  "Nominación OK:",
+                  `cat ${n.categoriaNumero} -> ${n.descripcion} (id=${nominacionId})`
                 );
-              });
-            });
+
+                if (!n.usernames || n.usernames.length === 0) {
+                  return doneNominacion();
+                }
+
+                let pendientesUsuarios = n.usernames.length;
+
+                const doneUsuario = () => {
+                  pendientesUsuarios--;
+                  if (pendientesUsuarios === 0) doneNominacion();
+                };
+
+                n.usernames.forEach((username) => {
+                  db.get(sqlUsuarioId, [username], (errUser: any, rowUser: any) => {
+                    if (errUser) {
+                      console.error("Error buscando usuario", username, errUser.message);
+                      return doneUsuario();
+                    }
+                    if (!rowUser) {
+                      console.error("No se encontró usuario", username);
+                      return doneUsuario();
+                    }
+
+                    db.run(
+                      sqlInsertNomUsuario,
+                      [nominacionId, rowUser.id],
+                      (errLink: any) => {
+                        if (errLink) {
+                          console.error(
+                            "Error insertando nominacion_usuarios",
+                            { nominacionId, username },
+                            errLink.message
+                          );
+                        } else {
+                          console.log(`Ligado: nom ${nominacionId} <- ${username}`);
+                        }
+                        doneUsuario();
+                      }
+                    );
+                  });
+                });
+              }
+            );
           }
         );
       });
@@ -398,12 +381,24 @@ function seedNominaciones(): Promise<void> {
 async function runSeed() {
   try {
     initDb();
+
+    // Si quieres “reset total” cada vez, descomenta esto:
+    // await new Promise<void>((res, rej) => db.serialize(() => {
+    //   db.run("DELETE FROM votos", (e) => e ? rej(e) : null);
+    //   db.run("DELETE FROM nominacion_usuarios", (e) => e ? rej(e) : null);
+    //   db.run("DELETE FROM nominaciones", (e) => e ? rej(e) : null);
+    //   res();
+    // }));
+
     console.log("🔹 Sembrando usuarios...");
     await seedUsuarios();
+
     console.log("🔹 Sembrando categorías...");
     await seedCategorias();
+
     console.log("🔹 Sembrando nominaciones...");
     await seedNominaciones();
+
     console.log("✅ Seed completado");
     process.exit(0);
   } catch (err) {
