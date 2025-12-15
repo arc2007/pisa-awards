@@ -1,9 +1,11 @@
-// backend/routes/auth.ts
-import express, { Request, Response } from "express";
+import express, { type Request, type Response } from "express";
 import { db } from "../db";
 import type { Usuario } from "../types/usuario";
 
 const router = express.Router();
+
+const dbError = (res: Response, err: any) =>
+  res.status(500).json({ error: err?.message ?? String(err) });
 
 /**
  * POST /login
@@ -32,7 +34,7 @@ router.post("/login", (req: Request, res: Response) => {
   `;
 
   db.get(sql, [username], (err: any, row: any | undefined) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return dbError(res, err);
 
     if (!row) {
       return res.status(401).json({ error: "Usuario o contraseña incorrectos" });
@@ -48,13 +50,9 @@ router.post("/login", (req: Request, res: Response) => {
       username: row.username,
       display_name: row.display_name,
       rol: row.rol,
-      // password NO la devolvemos
     };
 
-    // Aquí podrías generar un token JWT, pero de momento devolvemos solo el usuario
-    return res.json({
-      usuario,
-    });
+    return res.json({ usuario });
   });
 });
 

@@ -1,8 +1,12 @@
-// backend/routes/categorias.ts
-import express, { Request, Response } from "express";
+import express, { type Request, type Response } from "express";
 import { db } from "../db";
 
 const router = express.Router();
+
+const dbError = (res: Response, err: any) =>
+  res.status(500).json({ error: err?.message ?? String(err) });
+
+const asBool = (v: any) => !!v;
 
 /**
  * Helper: agrupa filas (nominación + usuario) en:
@@ -35,8 +39,25 @@ function agruparNominaciones(rows: any[]) {
 }
 
 /**
+ * Devuelve rol de un usuario (o null si no existe)
+ */
+function getRolUsuario(
+  usuarioId: number,
+  cb: (err: any, rol: string | null) => void
+) {
+  if (!usuarioId) return cb(null, null);
+
+  const sql = `SELECT rol FROM usuarios WHERE id = ? LIMIT 1`;
+  db.get(sql, [usuarioId], (err: any, row: any) => {
+    if (err) return cb(err, null);
+    return cb(null, row?.rol ?? null);
+  });
+}
+
+/**
  * GET /categorias
  * Devuelve categorías con sus nominaciones (y usuarios ligados).
+ * (Sin resultados de votos)
  */
 router.get("/", (_req: Request, res: Response) => {
   const sqlCategorias = `
@@ -45,8 +66,8 @@ router.get("/", (_req: Request, res: Response) => {
     ORDER BY id
   `;
 
-  db.all(sqlCategorias, [], (err, categorias) => {
-    if (err) return res.status(500).json({ error: err.message });
+  db.all(sqlCategorias, [], (err: any, categorias: any[]) => {
+    if (err) return dbError(res, err);
     if (!categorias || categorias.length === 0) return res.json([]);
 
     const sqlNominados = `
@@ -66,8 +87,8 @@ router.get("/", (_req: Request, res: Response) => {
       ORDER BY c.id, n.id, u.display_name
     `;
 
-    db.all(sqlNominados, [], (err2, rows) => {
-      if (err2) return res.status(500).json({ error: err2.message });
+    db.all(sqlNominados, [], (err2: any, rows: any[]) => {
+      if (err2) return dbError(res, err2);
 
       // Agrupar por categoría
       const porCategoria: Record<number, any[]> = {};
@@ -81,119 +102,138 @@ router.get("/", (_req: Request, res: Response) => {
         const nominados = agruparNominaciones(porCategoria[c.id] || []);
         return {
           ...c,
-          es_videos: !!c.es_videos,
+          es_videos: asBool(c.es_videos),
           nominados,
         };
       });
 
-      res.json(resultado);
+      return res.json(resultado);
     });
   });
 });
 
 /**
  * GET /categorias/estado/:votanteId
- * Devuelve para cada categoría:
- * - nominados SIEMPRE (para poder votar si no ha votado)
+ *
+ * Usuario normal:
+ * - nominados
  * - haVotado
- * - topNominados (solo si ha votado)
+ * - miVotoNominacionId
+ *
+ * Admin:
+ * - además resultados (conteo por nominación) en "resultados"
+ *
+ * Como no hay JWT, se usa ?requesterId=<idUsuarioLogueado>
+ * Si no viene requesterId, se asume el propio votanteId.
  */
 router.get("/estado/:votanteId", (req: Request, res: Response) => {
   const votanteId = Number(req.params.votanteId);
+  const requesterId = Number((req.query.requesterId as string) ?? votanteId);
 
-  const sqlCategorias = `
-    SELECT id, nombre, descripcion, es_videos
-    FROM categorias
-    ORDER BY id
-  `;
+  if (!votanteId) return res.status(400).json({ error: "votanteId inválido" });
 
-  db.all(sqlCategorias, [], (err, categorias) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!categorias || categorias.length === 0) return res.json([]);
+  getRolUsuario(requesterId, (errRol, rol) => {
+    if (errRol) return dbError(res, errRol);
 
-    const resultado: any[] = [];
-    let pendientes = categorias.length;
+    const isAdmin = rol === "admin";
 
-    categorias.forEach((cat: any) => {
-      // 1) Nominaciones + usuarios ligados
-      const sqlNominados = `
-        SELECT
-          n.id             AS nominacion_id,
-          n.descripcion    AS descripcion,
-          n.video_url      AS video_url,
-          u.id             AS usuario_id,
-          u.username       AS username,
-          u.display_name   AS display_name,
-          u.rol            AS rol
-        FROM nominaciones n
-        LEFT JOIN nominacion_usuarios nu ON nu.nominacion_id = n.id
-        LEFT JOIN usuarios u             ON u.id = nu.usuario_id
-        WHERE n.categoria_id = ?
-        ORDER BY n.id, u.display_name
-      `;
+    const sqlCategorias = `
+      SELECT id, nombre, descripcion, es_videos
+      FROM categorias
+      ORDER BY id
+    `;
 
-      db.all(sqlNominados, [cat.id], (errNom, rowsNom) => {
-        if (errNom) return res.status(500).json({ error: errNom.message });
+    db.all(sqlCategorias, [], (err: any, categorias: any[]) => {
+      if (err) return dbError(res, err);
+      if (!categorias || categorias.length === 0) return res.json([]);
 
-        const nominados = agruparNominaciones(rowsNom as any[]);
+      const resultado: any[] = [];
+      let pendientes = categorias.length;
 
-        // 2) Ha votado?
-        const sqlHaVotado = `
-          SELECT 1 FROM votos
-          WHERE votante_id = ? AND categoria_id = ?
-          LIMIT 1
+      categorias.forEach((cat: any) => {
+        // 1) Nominaciones + usuarios ligados (siempre)
+        const sqlNominados = `
+          SELECT
+            n.id             AS nominacion_id,
+            n.descripcion    AS descripcion,
+            n.video_url      AS video_url,
+            u.id             AS usuario_id,
+            u.username       AS username,
+            u.display_name   AS display_name,
+            u.rol            AS rol
+          FROM nominaciones n
+          LEFT JOIN nominacion_usuarios nu ON nu.nominacion_id = n.id
+          LEFT JOIN usuarios u             ON u.id = nu.usuario_id
+          WHERE n.categoria_id = ?
+          ORDER BY n.id, u.display_name
         `;
 
-        db.get(sqlHaVotado, [votanteId, cat.id], (errV, voto) => {
-          if (errV) return res.status(500).json({ error: errV.message });
+        db.all(sqlNominados, [cat.id], (errNom: any, rowsNom: any[]) => {
+          if (errNom) return dbError(res, errNom);
 
-          const haVotado = !!voto;
+          const nominados = agruparNominaciones(rowsNom as any[]);
 
-          if (!haVotado) {
-            resultado.push({
-              ...cat,
-              es_videos: !!cat.es_videos,
-              haVotado: false,
-              nominados,
-              topNominados: [],
-            });
-
-            pendientes--;
-            if (pendientes === 0) {
-              return res.json(resultado.sort((a, b) => a.id - b.id));
-            }
-            return;
-          }
-
-          // 3) Top 2 si ha votado
-          const sqlTop = `
-            SELECT 
-              n.id,
-              n.descripcion,
-              COUNT(v.id) as votos
-            FROM votos v
-            JOIN nominaciones n ON n.id = v.nominacion_id
-            WHERE v.categoria_id = ?
-            GROUP BY n.id
-            ORDER BY votos DESC
-            LIMIT 2
+          // 2) Mi voto (si existe)
+          const sqlMiVoto = `
+            SELECT nominacion_id
+            FROM votos
+            WHERE votante_id = ? AND categoria_id = ?
+            LIMIT 1
           `;
 
-          db.all(sqlTop, [cat.id], (errTop, top) => {
-            if (errTop) return res.status(500).json({ error: errTop.message });
+          db.get(sqlMiVoto, [votanteId, cat.id], (errV: any, votoRow: any) => {
+            if (errV) return dbError(res, errV);
 
-            resultado.push({
-              ...cat,
-              es_videos: !!cat.es_videos,
-              haVotado: true,
-              nominados,
-              topNominados: top,
-            });
+            const haVotado = !!votoRow;
+            const miVotoNominacionId = votoRow?.nominacion_id ?? null;
 
-            pendientes--;
-            if (pendientes === 0) {
-              return res.json(resultado.sort((a, b) => a.id - b.id));
+            // Usuario normal => NO resultados
+            if (!isAdmin) {
+              resultado.push({
+                ...cat,
+                es_videos: asBool(cat.es_videos),
+                haVotado,
+                miVotoNominacionId,
+                nominados,
+              });
+
+              pendientes--;
+              if (pendientes === 0) {
+                return res.json(resultado.sort((a, b) => a.id - b.id));
+              }
+              return;
             }
+
+            // Admin => resultados (conteo por nominación)
+            const sqlResultados = `
+              SELECT
+                n.id,
+                n.descripcion,
+                COUNT(v.id) AS votos
+              FROM nominaciones n
+              LEFT JOIN votos v ON v.nominacion_id = n.id
+              WHERE n.categoria_id = ?
+              GROUP BY n.id
+              ORDER BY votos DESC, n.id ASC
+            `;
+
+            db.all(sqlResultados, [cat.id], (errR: any, rowsR: any[]) => {
+              if (errR) return dbError(res, errR);
+
+              resultado.push({
+                ...cat,
+                es_videos: asBool(cat.es_videos),
+                haVotado,
+                miVotoNominacionId,
+                nominados,
+                resultados: rowsR ?? [],
+              });
+
+              pendientes--;
+              if (pendientes === 0) {
+                return res.json(resultado.sort((a, b) => a.id - b.id));
+              }
+            });
           });
         });
       });
@@ -203,27 +243,37 @@ router.get("/estado/:votanteId", (req: Request, res: Response) => {
 
 /**
  * GET /categorias/:categoriaId/top
- * Devuelve top 2 nominaciones de una categoría.
+ * Solo admin. Requiere ?requesterId=<idAdmin>
+ * (Si ya usas "resultados" en /estado, este endpoint es opcional.)
  */
 router.get("/:categoriaId/top", (req: Request, res: Response) => {
   const categoriaId = Number(req.params.categoriaId);
+  const requesterId = Number(req.query.requesterId as string);
 
-  const sql = `
-    SELECT 
-      n.id,
-      n.descripcion,
-      COUNT(v.id) as votos
-    FROM votos v
-    JOIN nominaciones n ON n.id = v.nominacion_id
-    WHERE v.categoria_id = ?
-    GROUP BY n.id
-    ORDER BY votos DESC
-    LIMIT 2
-  `;
+  if (!categoriaId) return res.status(400).json({ error: "categoriaId inválido" });
+  if (!requesterId) return res.status(400).json({ error: "requesterId es obligatorio" });
 
-  db.all(sql, [categoriaId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
+  getRolUsuario(requesterId, (errRol, rol) => {
+    if (errRol) return dbError(res, errRol);
+    if (rol !== "admin") return res.status(403).json({ error: "No autorizado" });
+
+    const sql = `
+      SELECT 
+        n.id,
+        n.descripcion,
+        COUNT(v.id) as votos
+      FROM votos v
+      JOIN nominaciones n ON n.id = v.nominacion_id
+      WHERE v.categoria_id = ?
+      GROUP BY n.id
+      ORDER BY votos DESC
+      LIMIT 2
+    `;
+
+    db.all(sql, [categoriaId], (err: any, rows: any[]) => {
+      if (err) return dbError(res, err);
+      return res.json(rows ?? []);
+    });
   });
 });
 
@@ -242,20 +292,22 @@ router.post("/", (req: Request, res: Response) => {
     return res.status(400).json({ error: "nombre es obligatorio" });
   }
 
+  const sql = `
+    INSERT INTO categorias (nombre, descripcion, es_videos)
+    VALUES (?, ?, ?)
+  `;
+
   db.run(
-    `
-      INSERT INTO categorias (nombre, descripcion, es_videos)
-      VALUES (?, ?, ?)
-    `,
+    sql,
     [nombre, descripcion ?? null, es_videos ? 1 : 0],
     function (err: any) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) return dbError(res, err);
 
-      res.status(201).json({
+      return res.status(201).json({
         id: this.lastID,
         nombre,
         descripcion: descripcion ?? null,
-        es_videos: !!es_videos,
+        es_videos: asBool(es_videos),
       });
     }
   );
@@ -271,8 +323,6 @@ router.post("/", (req: Request, res: Response) => {
  *   "video_url": null,
  *   "usuario_ids": [9, 4]
  * }
- *
- * usuario_ids es opcional (puede ir vacío o no ir).
  */
 router.post("/:categoriaId/nominaciones", (req: Request, res: Response) => {
   const categoriaId = Number(req.params.categoriaId);
@@ -287,54 +337,53 @@ router.post("/:categoriaId/nominaciones", (req: Request, res: Response) => {
     return res.status(400).json({ error: "descripcion es obligatoria" });
   }
 
-  db.run(
-    `
-      INSERT INTO nominaciones (categoria_id, descripcion, video_url)
-      VALUES (?, ?, ?)
-    `,
-    [categoriaId, descripcion, video_url ?? null],
-    function (err: any) {
-      if (err) return res.status(500).json({ error: err.message });
+  const sqlInsert = `
+    INSERT INTO nominaciones (categoria_id, descripcion, video_url)
+    VALUES (?, ?, ?)
+  `;
 
-      const nominacionId = this.lastID;
+  db.run(sqlInsert, [categoriaId, descripcion, video_url ?? null], function (err: any) {
+    if (err) return dbError(res, err);
 
-      const ids = Array.isArray(usuario_ids) ? usuario_ids : [];
-      if (ids.length === 0) {
-        return res.status(201).json({
-          id: nominacionId,
-          categoria_id: categoriaId,
-          descripcion,
-          video_url: video_url ?? null,
-          usuarios: [],
-        });
-      }
+    const nominacionId = this.lastID;
+    const ids = Array.isArray(usuario_ids) ? usuario_ids : [];
 
-      const stmt = db.prepare(`
-        INSERT OR IGNORE INTO nominacion_usuarios (nominacion_id, usuario_id)
-        VALUES (?, ?)
-      `);
-
-      let pendientes = ids.length;
-
-      ids.forEach((uid) => {
-        stmt.run([nominacionId, uid], (err2) => {
-          if (err2) console.error("Error ligando usuario a nominación", err2.message);
-          pendientes--;
-          if (pendientes === 0) {
-            stmt.finalize(() => {
-              return res.status(201).json({
-                id: nominacionId,
-                categoria_id: categoriaId,
-                descripcion,
-                video_url: video_url ?? null,
-                usuario_ids: ids,
-              });
-            });
-          }
-        });
+    if (ids.length === 0) {
+      return res.status(201).json({
+        id: nominacionId,
+        categoria_id: categoriaId,
+        descripcion,
+        video_url: video_url ?? null,
+        usuarios: [],
       });
     }
-  );
+
+    const stmt = db.prepare(`
+      INSERT OR IGNORE INTO nominacion_usuarios (nominacion_id, usuario_id)
+      VALUES (?, ?)
+    `);
+
+    let pendientes = ids.length;
+
+    ids.forEach((uid) => {
+      stmt.run([nominacionId, uid], (err2: any) => {
+        if (err2) console.error("Error ligando usuario a nominación", err2.message);
+
+        pendientes--;
+        if (pendientes === 0) {
+          stmt.finalize(() => {
+            return res.status(201).json({
+              id: nominacionId,
+              categoria_id: categoriaId,
+              descripcion,
+              video_url: video_url ?? null,
+              usuario_ids: ids,
+            });
+          });
+        }
+      });
+    });
+  });
 });
 
 export default router;

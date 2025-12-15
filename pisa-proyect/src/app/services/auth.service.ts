@@ -44,6 +44,14 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
+  getCurrentUserId(): number | null {
+    return this.currentUserSubject.value?.id ?? null;
+  }
+
+  isAdmin(): boolean {
+    return this.currentUserSubject.value?.rol === 'admin';
+  }
+
   isLoggedIn(): boolean {
     return !!this.currentUserSubject.value;
   }

@@ -9,12 +9,27 @@ export class VotosService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * El back hace UPSERT (si ya votaste esa categoría, actualiza).
+   */
   votar(
     votante_id: number,
     categoria_id: number,
     nominacion_id: number
-  ): Observable<any> {
-    return this.http.post(`${this.apiUrl}/votos`, {
+  ): Observable<{
+    id: number;
+    votante_id: number;
+    categoria_id: number;
+    nominacion_id: number;
+    updated: boolean;
+  }> {
+    return this.http.post<{
+      id: number;
+      votante_id: number;
+      categoria_id: number;
+      nominacion_id: number;
+      updated: boolean;
+    }>(`${this.apiUrl}/votos`, {
       votante_id,
       categoria_id,
       nominacion_id,

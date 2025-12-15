@@ -53,3 +53,60 @@ button:disabled {
     opacity: 0.6;
     cursor: default;
 }
+
+@media (max-width: 768px) {
+  .login-container {
+    width: 90%;
+    margin: 20px auto;
+    padding-bottom: 1.5rem;
+  }
+
+  .logo-style {
+    width: 80%;
+    margin-bottom: 1rem; /* acerca la imagen al formulario */
+  }
+
+  .form {
+    width: 100%;
+  }
+
+  .form-group {
+    width: 100%;
+  }
+
+  input {
+    font-size: 16px; /* mejor para móvil (evita zoom en iOS) */
+    padding: 10px 12px;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px 0;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    width: 95%;
+    margin: 10px auto;
+    border-radius: 10px;
+  }
+
+  .logo-style {
+    width: 90%;
+    margin-bottom: 0.5rem; /* aún más cerca */
+  }
+}
+
+@media (max-width: 768px) {
+  .form {
+    width: 100%;
+    padding: 0 1rem;   /* 👈 margen interno lateral */
+    box-sizing: border-box;
+  }
+
+  .form-group {
+    width: 100%;
+  }
+}

@@ -1,18 +1,32 @@
-<h2 mat-dialog-title>Confirmar voto</h2>
+<div class="modal">
+  <h2 mat-dialog-title class="modal-title">
+    {{ data?.modo === 'editar' ? 'Editar voto' : 'Confirmar voto' }}
+  </h2>
 
-<div mat-dialog-content>
-  <!-- <p>
-    {{ data.frase }}
-  </p>
+  <div mat-dialog-content class="modal-content">
+    <p class="modal-text">
+      {{
+        data?.modo === 'editar'
+          ? '¿Quieres cambiar tu voto a esta opción?'
+          : '¿Seguro que quieres votar esta opción?'
+      }}
+    </p>
 
-  <p class="opcion">
-    <strong>{{ data.nominacion.descripcion }}</strong>
-  </p> -->
-</div>
+    <div class="card-info">
+      <p class="opcion">
+        <strong>{{ data?.nominacionDescripcion }}</strong>
+      </p>
 
-<div mat-dialog-actions>
-  <button mat-button (click)="cancelar()">Cancelar</button>
-  <button mat-raised-button color="primary" (click)="confirmar()">
-    Sí, votar
-  </button>
+      <p class="categoria">
+        <small>Categoría: {{ data?.categoriaNombre }}</small>
+      </p>
+    </div>
+  </div>
+
+  <div mat-dialog-actions class="modal-actions">
+    <button mat-button class="btn-cancel" (click)="cancelar()">Cancelar</button>
+    <button mat-raised-button class="btn-primary" (click)="confirmar()">
+      {{ data?.modo === 'editar' ? 'Sí, cambiar' : 'Sí, votar' }}
+    </button>
+  </div>
 </div>

@@ -1,23 +1,23 @@
-// backend/routes/usuarios.ts
-import express, { Request, Response } from "express";
+import express, { type Request, type Response } from "express";
 import { db } from "../db";
 import type { RolUsuario, Usuario } from "../types/usuario";
 
 const router = express.Router();
+
+const dbError = (res: Response, err: any) =>
+  res.status(500).json({ error: err?.message ?? String(err) });
 
 /**
  * GET /usuarios
  * Devuelve usuarios sin contraseña (para admin / debug).
  */
 router.get("/", (_req: Request, res: Response) => {
-  db.all(
-    "SELECT id, username, display_name, rol FROM usuarios",
-    [],
-    (err: any, filas: Usuario[]) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(filas);
-    }
-  );
+  const sql = "SELECT id, username, display_name, rol FROM usuarios";
+
+  db.all(sql, [], (err: any, filas: Usuario[]) => {
+    if (err) return dbError(res, err);
+    return res.json(filas);
+  });
 });
 
 /**
@@ -39,30 +39,29 @@ router.post("/", (req: Request, res: Response) => {
   };
 
   if (!username || !display_name || !password) {
-    return res.status(400).json({
-      error: "username, display_name y password son obligatorios",
-    });
+    return res
+      .status(400)
+      .json({ error: "username, display_name y password son obligatorios" });
   }
 
   const rolFinal: RolUsuario = (rol as RolUsuario) || "interno";
 
-  db.run(
-    `INSERT INTO usuarios (username, display_name, rol, password) VALUES (?, ?, ?, ?)`,
-    [username, display_name, rolFinal, password],
-    function (err: any) {
-      if (err) return res.status(500).json({ error: err.message });
+  const sql =
+    "INSERT INTO usuarios (username, display_name, rol, password) VALUES (?, ?, ?, ?)";
 
-      const nuevo: Usuario = {
-        id: this.lastID,
-        username,
-        display_name,
-        rol: rolFinal,
-        // NO devolvemos password
-      };
+  db.run(sql, [username, display_name, rolFinal, password], function (err: any) {
+    if (err) return dbError(res, err);
 
-      res.status(201).json(nuevo);
-    }
-  );
+    const nuevo: Usuario = {
+      id: this.lastID,
+      username,
+      display_name,
+      rol: rolFinal,
+      // NO devolvemos password
+    };
+
+    return res.status(201).json(nuevo);
+  });
 });
 
 /**
@@ -72,15 +71,14 @@ router.post("/", (req: Request, res: Response) => {
 router.get("/:id", (req: Request, res: Response) => {
   const id = Number(req.params.id);
 
-  db.get(
-    "SELECT id, username, display_name, rol FROM usuarios WHERE id = ?",
-    [id],
-    (err: any, fila: Usuario | undefined) => {
-      if (err) return res.status(500).json({ error: err.message });
-      if (!fila) return res.status(404).json({ error: "Usuario no encontrado" });
-      res.json(fila);
-    }
-  );
+  const sql =
+    "SELECT id, username, display_name, rol FROM usuarios WHERE id = ?";
+
+  db.get(sql, [id], (err: any, fila: Usuario | undefined) => {
+    if (err) return dbError(res, err);
+    if (!fila) return res.status(404).json({ error: "Usuario no encontrado" });
+    return res.json(fila);
+  });
 });
 
 export default router;

@@ -1,6 +1,12 @@
 <div class="categorias-container" *ngIf="usuario">
+  <!-- HEADER -->
   <div class="header">
-    <h1>PisaCategorias 2025</h1>
+    <div class="header-title">
+      <span class="titulo-texto">PisaCategorias 2025</span>
+
+      <img src="assets/rana-corona.svg" alt="Rana con corona" class="titulo-icono" />
+    </div>
+
     <div class="user-info">
       <button (click)="authService.logout(); router.navigate(['/login'])">
         Salir
@@ -8,11 +14,14 @@
     </div>
   </div>
 
+  <!-- LOADING -->
   <p *ngIf="loading">Cargando categorías...</p>
 
+  <!-- LISTADO -->
   <ul class="categoria-list" *ngIf="!loading">
-    <li class="categoria-item" *ngFor="let cat of categorias">
-      <!-- CABECERA TARJETA -->
+    <li class="categoria-item" *ngFor="let cat of categorias; trackBy: trackByCatId">
+
+      <!-- CABECERA -->
       <div class="categoria-main" (click)="toggleCategoria(cat)">
         <div class="categoria-title">
           <h2>{{ cat.nombre }}</h2>
@@ -25,31 +34,45 @@
           {{ cat.descripcion }}
         </p>
 
-        <!-- CHEVRON -->
         <div class="chevron">
-          <span [class.abierto]="categoriaAbierta === cat.id">
-            ▼
-          </span>
+          <span [class.abierto]="categoriaAbierta === cat.id">▼</span>
         </div>
       </div>
 
       <!-- DESPLEGABLE -->
       <div class="categoria-detalle" *ngIf="categoriaAbierta === cat.id">
-        <!-- SI NO HA VOTADO -->
-        <div *ngIf="!cat.haVotado" class="opciones">
+        <!-- INFO VOTO (solo usuario normal) -->
+        <div *ngIf="cat.haVotado && !isAdmin" class="mi-voto">
+          <small>Tu voto:</small>
+          <div class="mi-voto-pill" *ngIf="getMiVotoDescripcion(cat) as desc">
+            {{ desc }}
+          </div>
+          <small class="hint">Pulsa otra opción para editar tu voto.</small>
+        </div>
+
+        <!-- OPCIONES (UNA SOLA VEZ) -->
+        <div class="opciones">
           <div class="opcion" *ngFor="let nom of cat.nominados"
+            [class.opcion-seleccionada]="cat.miVotoNominacionId === nom.id"
+            [class.opcion-disabled]="cat.miVotoNominacionId === nom.id"
             (click)="abrirModal(cat, nom); $event.stopPropagation()">
-            <div>{{ nom.descripcion }}</div>
+            <div class="opcion-titulo">
+              {{ nom.descripcion }}
+            </div>
+
+            <small *ngIf="cat.miVotoNominacionId === nom.id">
+              Tu voto
+            </small>
           </div>
         </div>
 
-        <!-- SI YA HA VOTADO -->
-        <div *ngIf="cat.haVotado" class="top">
-          <small>Top nominaciones:</small>
+        <!-- RESULTADOS (SOLO ADMIN) -->
+        <div class="resultados" *ngIf="isAdmin && cat.resultados?.length">
+          <small>Resultados (solo admin):</small>
           <ol>
-            <li *ngFor="let t of cat.topNominados">
-              <strong>{{ t.descripcion }}</strong>
-              <span> ({{ t.votos }} votos)</span>
+            <li *ngFor="let r of cat.resultados">
+              <strong>{{ r.descripcion }}</strong>
+              <span> ({{ r.votos }} votos)</span>
             </li>
           </ol>
         </div>

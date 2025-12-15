@@ -1,30 +1,74 @@
 :root {
   /* VERDES PRINCIPALES – más suaves */
-  --green-primary: #2E7D32;  /* verde hoja */
-  --green-dark: #1B5E20;     /* verde jungla */
-  --green-medium: #4CAF50;   /* verde bambú */
-  --green-light: #b4dfb5;    /* verde musgo claro */
-  --green-soft: #C8E6C9;     /* verde neblina */
+  --green-primary: #2E7D32;
+  /* verde hoja */
+  --green-dark: #1B5E20;
+  /* verde jungla */
+  --green-medium: #4CAF50;
+  /* verde bambú */
+  --green-light: #b4dfb5;
+  /* verde musgo claro */
+  --green-soft: #C8E6C9;
+  /* verde neblina */
 
   --white-soft: #F6FFF3;
   --black-forest: #0F1A0F;
   --test-forest: #c78f7a;
+  --test-yellow: #eaf097;
+  --test-yellow2: #e5e9b6;
 
   /* GRADIENTES ajustados para modo claro */
-  --gradient-card: linear-gradient(
-    145deg,
-    rgba(200, 230, 201, 0.85),
-    rgba(165, 214, 167, 0.6)
-  );
+  --gradient-card: linear-gradient(145deg,
+      rgba(200, 230, 201, 0.85),
+      rgba(165, 214, 167, 0.6));
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: url('./assets/frog-pattern-intercalado-bordes.svg');
-  background-color: var(--green-soft); 
-  background-repeat: no-repeat;
-  background-size: cover;
   margin: 0;
   font-family: "Inter", sans-serif;
   color: var(--green-dark);
+  background: none;
+  /* importante */
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url("./assets/frog-pattern-intercalado-bordes.svg") center / cover no-repeat;
+  background-color: var(--green-soft);
+}
+
+/* El panelClass se aplica al .cdk-overlay-pane */
+.cdk-overlay-pane.votar-dialog {
+  border-radius: 16px !important;
+}
+
+/* Material MDC (Angular Material v15+) */
+.cdk-overlay-pane.votar-dialog .mat-mdc-dialog-container,
+.cdk-overlay-pane.votar-dialog .mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+/* Quitar el “fondo blanco” y padding por defecto del surface */
+.cdk-overlay-pane.votar-dialog .mat-mdc-dialog-container .mdc-dialog__surface {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  /* opcional */
+}
+
+/* Por si tu proyecto es Material antiguo (no MDC) */
+.cdk-overlay-pane.votar-dialog .mat-dialog-container {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  padding: 0 !important;
+}

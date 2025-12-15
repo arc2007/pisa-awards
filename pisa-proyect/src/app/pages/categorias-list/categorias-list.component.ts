@@ -25,11 +25,15 @@ export class CategoriasListComponent implements OnInit {
 
   categoriaAbierta: number | null = null;
 
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
   constructor(
     private categoriasService: CategoriasService,
     private votosService: VotosService,
     public authService: AuthService,
-    public router: Router,
+    public router: Router
   ) { }
 
   ngOnInit(): void {
@@ -44,67 +48,106 @@ export class CategoriasListComponent implements OnInit {
 
   cargarCategorias(): void {
     this.loading = true;
-    this.categoriasService
-      .getCategoriasEstado(this.usuario.id)
-      .subscribe((cats) => {
-        this.categorias = cats;
+    this.categoriasService.getCategoriasEstado(this.usuario.id).subscribe({
+      next: (cats) => {
+        this.categorias = (cats || []).map((c: any) => ({
+          ...c,
+          miVotoNominacionId:
+            c.miVotoNominacionId === null || c.miVotoNominacionId === undefined
+              ? null
+              : Number(c.miVotoNominacionId),
+
+          // Normalizamos también los ids de nominados
+          nominados: (c.nominados || []).map((n: any) => ({
+            ...n,
+            id: Number(n.id),
+          })),
+        }));
+
         this.loading = false;
         this.cdr.detectChanges();
-        console.log(cats)
-      });
+      },
+      error: () => {
+        this.loading = false;
+        alert('Error cargando categorías');
+        this.cdr.detectChanges();
+      },
+    });
   }
 
+
   toggleCategoria(cat: any): void {
-    this.categoriaAbierta =
-      this.categoriaAbierta === cat.id ? null : cat.id;
+    this.categoriaAbierta = this.categoriaAbierta === cat.id ? null : cat.id;
     this.cdr.detectChanges();
   }
 
+  /**
+   * Devuelve el texto de la nominación votada por el usuario (si existe)
+   */
+  getMiVotoDescripcion(cat: any): string | null {
+    const id = cat?.miVotoNominacionId;
+    if (!id || !Array.isArray(cat?.nominados)) return null;
+    const nom = cat.nominados.find((n: any) => n.id === id);
+    return nom?.descripcion ?? null;
+  }
+
   abrirModal(categoria: any, nominacion: any): void {
-    const frase = `¿Seguro que quieres votar a "${nominacion.descripcion}" en la categoría "${categoria.nombre}"?`;
+    // si clicas la opción ya votada, no hacemos nada
+    if (categoria.miVotoNominacionId === nominacion.id) return;
+
+    const modo: 'votar' | 'editar' = categoria.haVotado ? 'editar' : 'votar';
 
     const dialogRef = this.dialog.open(VotarModalComponent, {
-      width: '400px',
+      width: '420px',
+      maxWidth: '95vw',
+      panelClass: 'votar-dialog',
       data: {
-        frase,
-        categoria,
-        nominacion,
+        modo,
+        categoriaNombre: categoria.nombre,
+        nominacionDescripcion: nominacion.descripcion,
       },
     });
 
     dialogRef.afterClosed().subscribe((confirmado) => {
-      if (confirmado) {
-        this.votar(categoria, nominacion);
-      }
+      if (confirmado) this.votar(categoria, nominacion);
     });
   }
 
-  votar(categoria: any, nominacion: any): void {
-    this.votosService
-      .votar(this.usuario.id, categoria.id, nominacion.id)
-      .subscribe({
-        next: () => {
-          categoria.haVotado = true;
 
-          this.categoriasService
-            .getTopCategoria(categoria.id)
-            .subscribe((top) => {
-              categoria.topNominados = top;
-            });
-        },
-        error: (err) => {
-          alert(err.error?.error || 'Error al votar');
-        },
-      });
+  votar(categoria: any, nominacion: any): void {
+    this.votosService.votar(this.usuario.id, categoria.id, nominacion.id).subscribe({
+      next: () => {
+        categoria.haVotado = true;
+        categoria.miVotoNominacionId = Number(nominacion.id);
+
+        // Si eres admin y quieres actualizar resultados SIN recargar todo,
+        // puedes pedir SOLO el estado y actualizar solo esa categoría (opcional).
+        if (this.isAdmin) {
+          this.categoriasService.getCategoriasEstado(this.usuario.id).subscribe({
+            next: (cats) => {
+              const updated = cats.find((c: any) => c.id === categoria.id);
+              if (updated) {
+                categoria.resultados = updated.resultados;
+              }
+              this.cdr.detectChanges();
+            },
+          });
+        } else {
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => alert(err.error?.error || 'Error al votar'),
+    });
   }
 
-  getUsuariosTexto(nom: any): string {
-    if (!nom?.usuarios || nom.usuarios.length === 0) {
-      return '';
-    }
 
-    return nom.usuarios
-      .map((u: any) => u.display_name)
-      .join(', ');
+  // (lo dejo por si lo usas en otro lado)
+  getUsuariosTexto(nom: any): string {
+    if (!nom?.usuarios || nom.usuarios.length === 0) return '';
+    return nom.usuarios.map((u: any) => u.display_name).join(', ');
+  }
+
+  trackByCatId(_i: number, cat: any) {
+    return cat.id;
   }
 }

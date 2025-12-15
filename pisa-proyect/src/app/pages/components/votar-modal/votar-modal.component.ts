@@ -1,9 +1,14 @@
 import { Component, Inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 
 @Component({
   selector: 'app-votar-modal',
+  standalone: true,
   templateUrl: './votar-modal.component.html',
   imports: [MatDialogModule, MatButtonModule],
   styleUrls: ['./votar-modal.component.scss'],
@@ -11,6 +16,12 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 export class VotarModalComponent {
   constructor(
     public dialogRef: MatDialogRef<VotarModalComponent>,
+    @Inject(MAT_DIALOG_DATA)
+    public data: {
+      modo: 'votar' | 'editar';
+      categoriaNombre: string;
+      nominacionDescripcion: string;
+    }
   ) {}
 
   cancelar(): void {
