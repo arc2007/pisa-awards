@@ -189,7 +189,7 @@ const nominaciones: NominacionSeed[] = [
   },
 
   // 13) Mejor clip del año (vídeos)
-  { categoriaNumero: 13, descripcion: "Help me en Sitges",       usernames: [],        video_url: null },
+  { categoriaNumero: 13, descripcion: "Help me en Sitges",       usernames: ["andres"],        video_url: null },
   { categoriaNumero: 13, descripcion: "Juaco bailando con niñas", usernames: ["juaco"], video_url: null },
   { categoriaNumero: 13, descripcion: "Juaco yappin",            usernames: ["juaco"], video_url: null },
 
@@ -197,7 +197,7 @@ const nominaciones: NominacionSeed[] = [
   {
     categoriaNumero: 14,
     descripcion: "Ex de Botas y novia de Peki pintando coche de Dieguin y bañera en el pekifest",
-    usernames: ["botas"],
+    usernames: ["botas","cabezas"],
   },
   {
     categoriaNumero: 14,

@@ -1,27 +1,35 @@
 // backend/db.ts
 import sqlite3 from "sqlite3";
 import path from "path";
+import fs from "fs";
 
-const dbPath = path.join(__dirname, "premios.db");
+const dataDir = process.env.DB_DIR || path.join(__dirname); // local: carpeta backend/dist
+const dbFile = process.env.DB_FILE || "premios.db";
+
+// En Fly usaremos DB_DIR=/data (volumen persistente)
+const dbPath = path.join(dataDir, dbFile);
+
+// Asegura que el directorio existe (en /data existirá cuando montes el volumen)
+try {
+  fs.mkdirSync(dataDir, { recursive: true });
+} catch {}
+
 export const db = new sqlite3.Database(dbPath);
 
 export function initDb() {
   db.serialize(() => {
-    // (Opcional pero recomendado) activar FK en SQLite
     db.run(`PRAGMA foreign_keys = ON;`);
 
-    // Usuarios
     db.run(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         display_name TEXT NOT NULL,
-        rol TEXT NOT NULL DEFAULT 'interno', -- 'admin' | 'interno' | 'externo'
-        password TEXT NOT NULL               -- texto plano (para el juego vale)
+        rol TEXT NOT NULL DEFAULT 'interno',
+        password TEXT NOT NULL
       )
     `);
 
-    // Categorías
     db.run(`
       CREATE TABLE IF NOT EXISTS categorias (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,13 +39,6 @@ export function initDb() {
       )
     `);
 
-    /*
-      NUEVO MODELO:
-      - nominaciones: lo que se vota dentro de una categoría (evento / clip / persona)
-      - nominacion_usuarios: qué usuarios están ligados a esa nominación (1 o varios)
-    */
-
-    // Nominaciones (lo que se vota dentro de una categoría)
     db.run(`
       CREATE TABLE IF NOT EXISTS nominaciones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +49,6 @@ export function initDb() {
       )
     `);
 
-    // Usuarios ligados a una nominación (1 o varios)
     db.run(`
       CREATE TABLE IF NOT EXISTS nominacion_usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,13 +59,11 @@ export function initDb() {
       )
     `);
 
-    // Evita duplicados (misma nominación ↔ mismo usuario)
     db.run(`
       CREATE UNIQUE INDEX IF NOT EXISTS ux_nominacion_usuarios
       ON nominacion_usuarios(nominacion_id, usuario_id)
     `);
 
-    // Votos: usuario vota una nominación en una categoría
     db.run(`
       CREATE TABLE IF NOT EXISTS votos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,13 +76,11 @@ export function initDb() {
       )
     `);
 
-    // Evita que un usuario vote 2 veces en la misma categoría
     db.run(`
       CREATE UNIQUE INDEX IF NOT EXISTS ux_votos_votante_categoria
       ON votos(votante_id, categoria_id)
     `);
 
-    // (Opcional) Índices de rendimiento
     db.run(`
       CREATE INDEX IF NOT EXISTS ix_nominaciones_categoria
       ON nominaciones(categoria_id)
@@ -97,8 +93,5 @@ export function initDb() {
       CREATE INDEX IF NOT EXISTS ix_votos_nominacion
       ON votos(nominacion_id)
     `);
-
-    // Si vienes del modelo anterior y la tabla existe, ya no tiene sentido:
-    // db.run(`DROP TABLE IF EXISTS categoria_nominados`);
   });
 }

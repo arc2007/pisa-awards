@@ -92,10 +92,15 @@ export class CategoriasListComponent implements OnInit {
   }
 
   abrirModal(categoria: any, nominacion: any): void {
-    // si clicas la opción ya votada, no hacemos nada
     if (categoria.miVotoNominacionId === nominacion.id) return;
 
     const modo: 'votar' | 'editar' = categoria.haVotado ? 'editar' : 'votar';
+
+    const usuarioIds: number[] = Array.isArray(nominacion?.usuarios)
+      ? nominacion.usuarios
+        .map((u: any) => Number(u?.id))
+        .filter((id: any) => Number.isFinite(id))
+      : [];
 
     const dialogRef = this.dialog.open(VotarModalComponent, {
       width: '420px',
@@ -105,6 +110,7 @@ export class CategoriasListComponent implements OnInit {
         modo,
         categoriaNombre: categoria.nombre,
         nominacionDescripcion: nominacion.descripcion,
+        usuarioIds,
       },
     });
 

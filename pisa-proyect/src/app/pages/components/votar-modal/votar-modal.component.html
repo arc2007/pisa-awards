@@ -12,6 +12,16 @@
       }}
     </p>
 
+    <div class="fotos-wrapper" *ngIf="data?.usuarioIds?.length">
+      <img
+        *ngFor="let id of data.usuarioIds"
+        class="foto-perfil"
+        [src]="getFotoPerfilUrl(id)"
+        [alt]="'Usuario ' + id"
+        loading="lazy"
+      />
+    </div>
+
     <div class="card-info">
       <p class="opcion">
         <strong>{{ data?.nominacionDescripcion }}</strong>
@@ -24,7 +34,9 @@
   </div>
 
   <div mat-dialog-actions class="modal-actions">
-    <button mat-button class="btn-cancel" (click)="cancelar()">Cancelar</button>
+    <button mat-button class="btn-cancel" (click)="cancelar()">
+      Cancelar
+    </button>
     <button mat-raised-button class="btn-primary" (click)="confirmar()">
       {{ data?.modo === 'editar' ? 'Sí, cambiar' : 'Sí, votar' }}
     </button>
