@@ -11,19 +11,19 @@ import votosRoutes from "./routes/votos";
 
 const app = express();
 
-// Fly inyecta PORT. En local usa 3000.
+// Fly inyecta PORT; local puedes usar 3000
 const PORT = Number(process.env.PORT) || 3000;
-// En Fly hay que escuchar en 0.0.0.0
+// Importante en Fly: escuchar en 0.0.0.0
 const HOST = "0.0.0.0";
 
-const isProd = process.env.NODE_ENV === "production";
+app.set("trust proxy", 1); // útil detrás del proxy de Fly (opcional)
 
-// -------- Middlewares --------
+// --- Middlewares ---
 app.use(express.json());
 
-// Si vas a servir Angular desde el MISMO dominio (recomendado),
-// en producción no necesitas CORS.
-// En local sí (Angular en localhost:4200).
+// CORS:
+// En producción, si sirves Angular desde el mismo dominio, normalmente no necesitas CORS.
+const isProd = process.env.NODE_ENV === "production";
 if (!isProd) {
   app.use(
     cors({
@@ -33,33 +33,30 @@ if (!isProd) {
   );
 }
 
-// -------- DB init --------
+// --- DB init ---
 initDb();
 
-// -------- API Routes --------
-// Ojo: tus archivos siguen en backend/routes/*.ts tal cual.
-// Solo que aquí los montamos con prefijo /api para no chocar con rutas Angular.
+// --- API routes (prefijo /api para no chocar con rutas del Angular) ---
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/categorias", categoriasRoutes);
 app.use("/api/votos", votosRoutes);
 
-// Healthcheck
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-// -------- Frontend (Angular build) --------
-// Este directorio lo llenaremos con el build de Angular en el siguiente paso.
+// --- Frontend estático (Angular) ---
+// En el Docker build copiaremos el dist del Angular aquí:
 const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir));
 
-// Fallback SPA: cualquier ruta que NO sea /api -> index.html
-app.get("*", (req, res) => {
-  if (req.path.startsWith("/api/")) {
-    return res.status(404).json({ error: "Not found" });
-  }
-  return res.sendFile(path.join(publicDir, "index.html"));
+// Si piden una ruta de API que no existe -> 404 JSON
+app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
+
+// Para refrescos en rutas tipo /algo del Angular
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 app.listen(PORT, HOST, () => {
-  console.log(`✅ Server escuchando en http://${HOST}:${PORT}`);
+  console.log(`✅ Backend escuchando en http://${HOST}:${PORT}`);
 });

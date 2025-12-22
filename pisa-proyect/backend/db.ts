@@ -3,16 +3,12 @@ import sqlite3 from "sqlite3";
 import path from "path";
 import fs from "fs";
 
-const dataDir = process.env.DB_DIR || path.join(__dirname); // local: carpeta backend/dist
-const dbFile = process.env.DB_FILE || "premios.db";
+const defaultDbPath = "/data/premios.db"; // Fly Volume
+const dbPath = process.env.DB_PATH || defaultDbPath;
 
-// En Fly usaremos DB_DIR=/data (volumen persistente)
-const dbPath = path.join(dataDir, dbFile);
-
-// Asegura que el directorio existe (en /data existirá cuando montes el volumen)
-try {
-  fs.mkdirSync(dataDir, { recursive: true });
-} catch {}
+// Asegura que el directorio existe (por si lo pruebas local)
+const dir = path.dirname(dbPath);
+if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
 export const db = new sqlite3.Database(dbPath);
 
