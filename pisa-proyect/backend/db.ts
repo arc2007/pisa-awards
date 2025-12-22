@@ -3,12 +3,18 @@ import sqlite3 from "sqlite3";
 import path from "path";
 import fs from "fs";
 
-const defaultDbPath = "/data/premios.db"; // Fly Volume
-const dbPath = process.env.DB_PATH || defaultDbPath;
+// En Fly montaremos un volumen en /data
+// En local, si no existe, caerá a backend/premios.db
+const defaultLocal = path.join(__dirname, "premios.db");
+const dbPath = process.env.DB_PATH || "/data/premios.db";
 
-// Asegura que el directorio existe (por si lo pruebas local)
-const dir = path.dirname(dbPath);
-if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+// Crea carpeta si hace falta (para local si usas una ruta con carpeta)
+try {
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+} catch {
+  // si falla, no bloqueamos; sqlite fallará si de verdad no puede escribir
+}
 
 export const db = new sqlite3.Database(dbPath);
 
