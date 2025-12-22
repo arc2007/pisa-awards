@@ -6,12 +6,14 @@
 FROM node:20-alpine AS build_front
 WORKDIR /app
 
-# Install frontend deps
+# Install frontend dependencies
 COPY pisa-proyect/package*.json ./
 RUN npm ci
 
-# Build frontend
+# Copy frontend source
 COPY pisa-proyect/ ./
+
+# Build Angular app
 RUN npm run build
 
 
@@ -21,23 +23,22 @@ RUN npm run build
 FROM node:20-alpine AS build_back
 WORKDIR /app/backend
 
-# Native deps for node-gyp builds, plus sqlite libs if needed at build time
+# Native deps for sqlite / node-gyp
 RUN apk add --no-cache python3 make g++ sqlite-libs
 
-# Install backend deps (including dev deps for tsc)
+# Install backend deps (with dev deps for TypeScript)
 COPY pisa-proyect/backend/package*.json ./
 RUN npm ci --include=dev
 
 # Copy backend source
 COPY pisa-proyect/backend/ ./
 
-# 🔧 Fix: ensure local bin shims (including tsc) are executable
-# (prevents: "sh: tsc: Permission denied")
+# 🔧 Fix executable permissions for tsc
 RUN chmod -R a+rx node_modules/.bin \
-  && if [ -f node_modules/typescript/bin/tsc ]; then chmod a+rx node_modules/typescript/bin/tsc; fi \
+  && chmod a+rx node_modules/typescript/bin/tsc \
   && npm run build
 
-# Optionally prune dev deps for runtime size
+# Remove dev deps for runtime
 RUN npm prune --omit=dev
 
 
@@ -47,24 +48,29 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# Runtime sqlite library (you already had this)
 RUN apk add --no-cache sqlite-libs
 
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Backend runtime files
+################
+# Backend app #
+################
 WORKDIR /app/backend
 COPY --from=build_back /app/backend/package*.json ./
 COPY --from=build_back /app/backend/node_modules ./node_modules
 COPY --from=build_back /app/backend/dist ./dist
+COPY --from=build_back /app/backend/prizes.db ./prizes.db || true
 
-# Frontend build output (kept alongside; your backend can serve it if configured)
-WORKDIR /app
-COPY --from=build_front /app/dist ./dist
+##################
+# Frontend app  #
+##################
+# Angular output path: dist/pisa-proyect/browser
+WORKDIR /app/frontend
+COPY --from=build_front /app/dist/pisa-proyect/browser ./public
 
-# Fly usually expects your app to listen on 8080 (unless your fly.toml says otherwise)
 EXPOSE 8080
 
-# Start backend (adjust if your backend start command differs)
+# Start backend server
 WORKDIR /app/backend
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server.js"]
