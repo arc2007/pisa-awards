@@ -1,64 +1,70 @@
 # syntax=docker/dockerfile:1
 
-# ---- 1) Build frontend (Angular) ----
+########################
+# Frontend build stage #
+########################
 FROM node:20-alpine AS build_front
 WORKDIR /app
 
-# If Angular build needs native deps, uncomment the next line:
-# RUN apk add --no-cache python3 make g++ git
-
-# Install deps from the app folder inside the repo
+# Install frontend deps
 COPY pisa-proyect/package*.json ./
 RUN npm ci
 
-# Copy the rest of the Angular app
+# Build frontend
 COPY pisa-proyect/ ./
-
-# Build Angular -> dist/...
 RUN npm run build
 
-# Collect frontend output in a stable location
-RUN mkdir -p /out/public && \
-    if [ -d dist ]; then cp -R dist/* /out/public/; fi
 
-
-# ---- 2) Build backend (Node/TS) ----
+#######################
+# Backend build stage #
+#######################
 FROM node:20-alpine AS build_back
 WORKDIR /app/backend
 
-# Needed for sqlite3 native module builds on Alpine
+# Native deps for node-gyp builds, plus sqlite libs if needed at build time
 RUN apk add --no-cache python3 make g++ sqlite-libs
 
+# Install backend deps (including dev deps for tsc)
 COPY pisa-proyect/backend/package*.json ./
 RUN npm ci --include=dev
 
+# Copy backend source
 COPY pisa-proyect/backend/ ./
 
-# Build TS -> dist/...
-RUN npm run build
+# 🔧 Fix: ensure local bin shims (including tsc) are executable
+# (prevents: "sh: tsc: Permission denied")
+RUN chmod -R a+rx node_modules/.bin \
+  && if [ -f node_modules/typescript/bin/tsc ]; then chmod a+rx node_modules/typescript/bin/tsc; fi \
+  && npm run build
 
-# Keep only production deps for runtime, then stage output
-RUN npm prune --omit=dev && \
-    mkdir -p /out/backend && \
-    cp -R dist node_modules package*.json /out/backend/
+# Optionally prune dev deps for runtime size
+RUN npm prune --omit=dev
 
 
-# ---- 3) Runtime ----
+#################
+# Runtime stage #
+#################
 FROM node:20-alpine AS runtime
-WORKDIR /app/backend
-ENV NODE_ENV=production
+WORKDIR /app
 
-# sqlite runtime libs
+# Runtime sqlite library (you already had this)
 RUN apk add --no-cache sqlite-libs
 
-# Backend runtime bundle (dist + prod node_modules)
-COPY --from=build_back /out/backend/ ./
+ENV NODE_ENV=production
 
-# Your server.ts serves static files from:
-#   const publicDir = path.join(__dirname, "public");
-# and __dirname will be /app/backend/dist at runtime,
-# so we must copy Angular into /app/backend/dist/public
-COPY --from=build_front /out/public/ ./dist/public/
+# Backend runtime files
+WORKDIR /app/backend
+COPY --from=build_back /app/backend/package*.json ./
+COPY --from=build_back /app/backend/node_modules ./node_modules
+COPY --from=build_back /app/backend/dist ./dist
 
+# Frontend build output (kept alongside; your backend can serve it if configured)
+WORKDIR /app
+COPY --from=build_front /app/dist ./dist
+
+# Fly usually expects your app to listen on 8080 (unless your fly.toml says otherwise)
 EXPOSE 8080
-CMD ["node", "dist/server.js"]
+
+# Start backend (adjust if your backend start command differs)
+WORKDIR /app/backend
+CMD ["node", "dist/index.js"]
