@@ -12,7 +12,7 @@ import votosRoutes from "./routes/votos";
 const app = express();
 
 // Fly inyecta PORT; local puedes usar 3000
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 8080;
 // Importante en Fly: escuchar en 0.0.0.0
 const HOST = "0.0.0.0";
 
