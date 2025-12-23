@@ -21,3 +21,6 @@ primary_region = "lhr"
 [mounts]
   source = "data"
   destination = "/data"
+  
+[env]
+  SQLITE_DIR = "/data"
