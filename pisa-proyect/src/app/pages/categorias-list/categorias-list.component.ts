@@ -56,11 +56,15 @@ export class CategoriasListComponent implements OnInit {
             c.miVotoNominacionId === null || c.miVotoNominacionId === undefined
               ? null
               : Number(c.miVotoNominacionId),
-
-          // Normalizamos también los ids de nominados
           nominados: (c.nominados || []).map((n: any) => ({
             ...n,
             id: Number(n.id),
+            usuarios: Array.isArray(n.usuarios)
+              ? n.usuarios.map((u: any) => ({
+                ...u,
+                id: Number(u?.id),
+              }))
+              : [],
           })),
         }));
 
@@ -75,15 +79,11 @@ export class CategoriasListComponent implements OnInit {
     });
   }
 
-
   toggleCategoria(cat: any): void {
     this.categoriaAbierta = this.categoriaAbierta === cat.id ? null : cat.id;
     this.cdr.detectChanges();
   }
 
-  /**
-   * Devuelve el texto de la nominación votada por el usuario (si existe)
-   */
   getMiVotoDescripcion(cat: any): string | null {
     const id = cat?.miVotoNominacionId;
     if (!id || !Array.isArray(cat?.nominados)) return null;
@@ -91,8 +91,22 @@ export class CategoriasListComponent implements OnInit {
     return nom?.descripcion ?? null;
   }
 
+  usuarioEstaEnNominacion(nominacion: any): boolean {
+    const userId = Number(this.usuario?.id);
+    if (!Number.isFinite(userId)) return false;
+
+    const ids: number[] = Array.isArray(nominacion?.usuarios)
+      ? nominacion.usuarios
+        .map((u: any) => Number(u?.id))
+        .filter((id: any) => Number.isFinite(id))
+      : [];
+
+    return ids.includes(userId);
+  }
+
   abrirModal(categoria: any, nominacion: any): void {
     if (categoria.miVotoNominacionId === nominacion.id) return;
+    if (this.usuarioEstaEnNominacion(nominacion)) return;
 
     const modo: 'votar' | 'editar' = categoria.haVotado ? 'editar' : 'votar';
 
@@ -119,15 +133,14 @@ export class CategoriasListComponent implements OnInit {
     });
   }
 
-
   votar(categoria: any, nominacion: any): void {
+    if (this.usuarioEstaEnNominacion(nominacion)) return;
+
     this.votosService.votar(this.usuario.id, categoria.id, nominacion.id).subscribe({
       next: () => {
         categoria.haVotado = true;
         categoria.miVotoNominacionId = Number(nominacion.id);
 
-        // Si eres admin y quieres actualizar resultados SIN recargar todo,
-        // puedes pedir SOLO el estado y actualizar solo esa categoría (opcional).
         if (this.isAdmin) {
           this.categoriasService.getCategoriasEstado(this.usuario.id).subscribe({
             next: (cats) => {
@@ -146,8 +159,6 @@ export class CategoriasListComponent implements OnInit {
     });
   }
 
-
-  // (lo dejo por si lo usas en otro lado)
   getUsuariosTexto(nom: any): string {
     if (!nom?.usuarios || nom.usuarios.length === 0) return '';
     return nom.usuarios.map((u: any) => u.display_name).join(', ');

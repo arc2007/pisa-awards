@@ -1,9 +1,7 @@
 <div class="categorias-container" *ngIf="usuario">
-  <!-- HEADER -->
   <div class="header">
     <div class="header-title">
       <span class="titulo-texto">PisaCategorias 2025</span>
-
       <img src="assets/rana-corona.svg" alt="Rana con corona" class="titulo-icono" />
     </div>
 
@@ -14,14 +12,10 @@
     </div>
   </div>
 
-  <!-- LOADING -->
   <p *ngIf="loading">Cargando categorías...</p>
 
-  <!-- LISTADO -->
   <ul class="categoria-list" *ngIf="!loading">
     <li class="categoria-item" *ngFor="let cat of categorias; trackBy: trackByCatId">
-
-      <!-- CABECERA -->
       <div class="categoria-main" (click)="toggleCategoria(cat)">
         <div class="categoria-title">
           <h2>{{ cat.nombre }}</h2>
@@ -39,9 +33,7 @@
         </div>
       </div>
 
-      <!-- DESPLEGABLE -->
       <div class="categoria-detalle" *ngIf="categoriaAbierta === cat.id">
-        <!-- INFO VOTO (solo usuario normal) -->
         <div *ngIf="cat.haVotado && !isAdmin" class="mi-voto">
           <small>Tu voto:</small>
           <div class="mi-voto-pill" *ngIf="getMiVotoDescripcion(cat) as desc">
@@ -50,12 +42,14 @@
           <small class="hint">Pulsa otra opción para editar tu voto.</small>
         </div>
 
-        <!-- OPCIONES (UNA SOLA VEZ) -->
         <div class="opciones">
-          <div class="opcion" *ngFor="let nom of cat.nominados"
+          <div
+            class="opcion"
+            *ngFor="let nom of cat.nominados"
             [class.opcion-seleccionada]="cat.miVotoNominacionId === nom.id"
-            [class.opcion-disabled]="cat.miVotoNominacionId === nom.id"
-            (click)="abrirModal(cat, nom); $event.stopPropagation()">
+            [class.opcion-disabled]="cat.miVotoNominacionId === nom.id || usuarioEstaEnNominacion(nom)"
+            (click)="abrirModal(cat, nom); $event.stopPropagation()"
+          >
             <div class="opcion-titulo">
               {{ nom.descripcion }}
             </div>
@@ -63,10 +57,13 @@
             <small *ngIf="cat.miVotoNominacionId === nom.id">
               Tu voto
             </small>
+
+            <small *ngIf="usuarioEstaEnNominacion(nom) && cat.miVotoNominacionId !== nom.id">
+              No puedes votarte
+            </small>
           </div>
         </div>
 
-        <!-- RESULTADOS (SOLO ADMIN) -->
         <div class="resultados" *ngIf="isAdmin && cat.resultados?.length">
           <small>Resultados (solo admin):</small>
           <ol>
